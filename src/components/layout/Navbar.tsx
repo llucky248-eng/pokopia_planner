@@ -7,6 +7,7 @@ const links = [
   { href: "/", label: "Home" },
   { href: "/planner", label: "Planner" },
   { href: "/checklist", label: "Checklist" },
+  { href: "/guide", label: "Guide" },
 ];
 
 export default function Navbar() {
