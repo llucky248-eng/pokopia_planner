@@ -1,0 +1,528 @@
+"use client";
+
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { GridState, PlacedItem } from "@/types";
+import {
+  GRID_SIZE,
+  BASE_CELL_SIZE,
+  MIN_ZOOM,
+  MAX_ZOOM,
+  DEFAULT_ZOOM,
+  MINIMAP_SIZE,
+  ZOOM_SENSITIVITY,
+} from "@/lib/constants";
+import { getItemById } from "@/data/items";
+import { tailwindToHex } from "@/lib/colors";
+
+interface Camera {
+  x: number; // world-space top-left X
+  y: number; // world-space top-left Y
+  zoom: number;
+}
+
+const WORLD_SIZE = GRID_SIZE * BASE_CELL_SIZE; // 1472 world units
+
+export function useCanvasRenderer(
+  grid: GridState,
+  selectedItemId: string | null,
+  toolMode: "place" | "erase",
+  onPlace: (itemId: string, row: number, col: number) => void,
+  onRemove: (instanceId: string) => void,
+) {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const minimapRef = useRef<HTMLCanvasElement>(null);
+  const cameraRef = useRef<Camera>({ x: 0, y: 0, zoom: DEFAULT_ZOOM });
+  const dirtyRef = useRef(true);
+  const rafRef = useRef<number>(0);
+  const canvasSizeRef = useRef<{ w: number; h: number }>({ w: 0, h: 0 });
+  const hoveredCellRef = useRef<{ row: number; col: number } | null>(null);
+  const isPanningRef = useRef(false);
+  const panStartRef = useRef<{ mouseX: number; mouseY: number; camX: number; camY: number } | null>(null);
+  const isMinimapDraggingRef = useRef(false);
+
+  const [cursorStyle, setCursorStyle] = useState<string>("crosshair");
+
+  // Spatial index: O(1) lookup by row,col
+  const spatialIndex = useMemo(() => {
+    const map = new Map<string, PlacedItem>();
+    for (const p of grid.placements) {
+      map.set(`${p.row},${p.col}`, p);
+    }
+    return map;
+  }, [grid.placements]);
+  const spatialIndexRef = useRef(spatialIndex);
+  spatialIndexRef.current = spatialIndex;
+
+  // Store latest props in refs so event handlers always see fresh values
+  const selectedItemIdRef = useRef(selectedItemId);
+  selectedItemIdRef.current = selectedItemId;
+  const toolModeRef = useRef(toolMode);
+  toolModeRef.current = toolMode;
+  const onPlaceRef = useRef(onPlace);
+  onPlaceRef.current = onPlace;
+  const onRemoveRef = useRef(onRemove);
+  onRemoveRef.current = onRemove;
+
+  const markDirty = useCallback(() => {
+    dirtyRef.current = true;
+  }, []);
+
+  // Update cursor based on mode
+  useEffect(() => {
+    if (toolMode === "erase") {
+      setCursorStyle("not-allowed");
+    } else if (selectedItemId) {
+      setCursorStyle("crosshair");
+    } else {
+      setCursorStyle("grab");
+    }
+  }, [selectedItemId, toolMode]);
+
+  // Mark dirty on grid change
+  useEffect(() => {
+    markDirty();
+  }, [grid, markDirty]);
+
+  const clampCamera = useCallback(() => {
+    const camera = cameraRef.current;
+    const { w, h } = canvasSizeRef.current;
+    const viewWorldW = w / camera.zoom;
+    const viewWorldH = h / camera.zoom;
+    // Allow some margin
+    const maxX = Math.max(0, WORLD_SIZE - viewWorldW);
+    const maxY = Math.max(0, WORLD_SIZE - viewWorldH);
+    camera.x = Math.max(0, Math.min(maxX, camera.x));
+    camera.y = Math.max(0, Math.min(maxY, camera.y));
+  }, []);
+
+  const screenToGrid = useCallback((mouseX: number, mouseY: number) => {
+    const camera = cameraRef.current;
+    const worldX = camera.x + mouseX / camera.zoom;
+    const worldY = camera.y + mouseY / camera.zoom;
+    const col = Math.floor(worldX / BASE_CELL_SIZE);
+    const row = Math.floor(worldY / BASE_CELL_SIZE);
+    if (col < 0 || col >= GRID_SIZE || row < 0 || row >= GRID_SIZE) return null;
+    return { row, col };
+  }, []);
+
+  const renderMainCanvas = useCallback(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+    const { w, h } = canvasSizeRef.current;
+    const camera = cameraRef.current;
+
+    // Clear (canvas is already dpr-scaled via setTransform-free approach; we use CSS pixels here)
+    ctx.fillStyle = "#f0f9ff"; // cloud white
+    ctx.fillRect(0, 0, w, h);
+
+    const cellPx = BASE_CELL_SIZE * camera.zoom;
+
+    // Compute visible cell range
+    const startCol = Math.max(0, Math.floor(camera.x / BASE_CELL_SIZE));
+    const startRow = Math.max(0, Math.floor(camera.y / BASE_CELL_SIZE));
+    const endCol = Math.min(GRID_SIZE - 1, Math.ceil((camera.x + w / camera.zoom) / BASE_CELL_SIZE));
+    const endRow = Math.min(GRID_SIZE - 1, Math.ceil((camera.y + h / camera.zoom) / BASE_CELL_SIZE));
+
+    // Draw grid lines if cells are big enough
+    if (cellPx >= 6) {
+      ctx.strokeStyle = "rgba(125, 211, 252, 0.25)";
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      for (let col = startCol; col <= endCol + 1; col++) {
+        const x = (col * BASE_CELL_SIZE - camera.x) * camera.zoom;
+        ctx.moveTo(x, 0);
+        ctx.lineTo(x, h);
+      }
+      for (let row = startRow; row <= endRow + 1; row++) {
+        const y = (row * BASE_CELL_SIZE - camera.y) * camera.zoom;
+        ctx.moveTo(0, y);
+        ctx.lineTo(w, y);
+      }
+      ctx.stroke();
+    }
+
+    // Draw world boundary
+    const bx = -camera.x * camera.zoom;
+    const by = -camera.y * camera.zoom;
+    const bw = WORLD_SIZE * camera.zoom;
+    ctx.strokeStyle = "#0369a1";
+    ctx.lineWidth = 2;
+    ctx.strokeRect(bx, by, bw, bw);
+
+    // Draw placed items
+    const index = spatialIndexRef.current;
+    ctx.textBaseline = "middle";
+    ctx.textAlign = "center";
+    for (let row = startRow; row <= endRow; row++) {
+      for (let col = startCol; col <= endCol; col++) {
+        const key = `${row},${col}`;
+        const placement = index.get(key);
+        if (!placement) continue;
+        const catItem = getItemById(placement.itemId);
+        if (!catItem) continue;
+        const screenX = (col * BASE_CELL_SIZE - camera.x) * camera.zoom;
+        const screenY = (row * BASE_CELL_SIZE - camera.y) * camera.zoom;
+        ctx.fillStyle = tailwindToHex(catItem.color);
+        ctx.fillRect(screenX, screenY, cellPx, cellPx);
+
+        if (cellPx >= 12) {
+          const fontSize = Math.floor(cellPx * 0.7);
+          ctx.font = `${fontSize}px serif`;
+          ctx.fillStyle = "#1f2937";
+          ctx.fillText(catItem.emoji, screenX + cellPx / 2, screenY + cellPx / 2);
+        }
+      }
+    }
+
+    // Hover highlight
+    const hovered = hoveredCellRef.current;
+    if (hovered) {
+      const screenX = (hovered.col * BASE_CELL_SIZE - camera.x) * camera.zoom;
+      const screenY = (hovered.row * BASE_CELL_SIZE - camera.y) * camera.zoom;
+      const isErase = toolModeRef.current === "erase";
+      const hasItem = index.has(`${hovered.row},${hovered.col}`);
+      ctx.fillStyle = isErase
+        ? "rgba(239, 68, 68, 0.35)"
+        : selectedItemIdRef.current
+          ? "rgba(14, 165, 233, 0.35)"
+          : "rgba(125, 211, 252, 0.2)";
+      ctx.fillRect(screenX, screenY, cellPx, cellPx);
+      ctx.strokeStyle = isErase
+        ? "#dc2626"
+        : selectedItemIdRef.current
+          ? "#0284c7"
+          : "#0ea5e9";
+      ctx.lineWidth = 2;
+      ctx.strokeRect(screenX + 1, screenY + 1, cellPx - 2, cellPx - 2);
+      void hasItem; // reserved for future tooltip
+    }
+  }, []);
+
+  const renderMinimap = useCallback(() => {
+    const minimap = minimapRef.current;
+    if (!minimap) return;
+    const ctx = minimap.getContext("2d");
+    if (!ctx) return;
+
+    ctx.fillStyle = "#f0f9ff";
+    ctx.fillRect(0, 0, MINIMAP_SIZE, MINIMAP_SIZE);
+
+    // Build ImageData at GRID_SIZE resolution (one pixel per cell)
+    const imageData = ctx.createImageData(GRID_SIZE, GRID_SIZE);
+    const data = imageData.data;
+    // Base fill: transparent
+    for (const p of grid.placements) {
+      const catItem = getItemById(p.itemId);
+      if (!catItem) continue;
+      const hex = tailwindToHex(catItem.color);
+      const r = parseInt(hex.slice(1, 3), 16);
+      const g = parseInt(hex.slice(3, 5), 16);
+      const b = parseInt(hex.slice(5, 7), 16);
+      const idx = (p.row * GRID_SIZE + p.col) * 4;
+      data[idx] = r;
+      data[idx + 1] = g;
+      data[idx + 2] = b;
+      data[idx + 3] = 255;
+    }
+
+    // Draw ImageData to offscreen canvas then scale to minimap
+    const off = document.createElement("canvas");
+    off.width = GRID_SIZE;
+    off.height = GRID_SIZE;
+    const offCtx = off.getContext("2d");
+    if (offCtx) {
+      offCtx.putImageData(imageData, 0, 0);
+      ctx.imageSmoothingEnabled = false;
+      ctx.drawImage(off, 0, 0, MINIMAP_SIZE, MINIMAP_SIZE);
+    }
+
+    // Viewport rectangle
+    const camera = cameraRef.current;
+    const { w, h } = canvasSizeRef.current;
+    const scale = MINIMAP_SIZE / WORLD_SIZE;
+    const vx = camera.x * scale;
+    const vy = camera.y * scale;
+    const vw = (w / camera.zoom) * scale;
+    const vh = (h / camera.zoom) * scale;
+    ctx.strokeStyle = "#0284c7";
+    ctx.lineWidth = 2;
+    ctx.strokeRect(vx, vy, Math.min(vw, MINIMAP_SIZE - vx), Math.min(vh, MINIMAP_SIZE - vy));
+    ctx.fillStyle = "rgba(14, 165, 233, 0.15)";
+    ctx.fillRect(vx, vy, Math.min(vw, MINIMAP_SIZE - vx), Math.min(vh, MINIMAP_SIZE - vy));
+
+    // Border
+    ctx.strokeStyle = "#0369a1";
+    ctx.lineWidth = 1;
+    ctx.strokeRect(0.5, 0.5, MINIMAP_SIZE - 1, MINIMAP_SIZE - 1);
+  }, [grid.placements]);
+
+  // Rebuild minimap when placements change
+  useEffect(() => {
+    markDirty();
+  }, [grid.placements, markDirty]);
+
+  // Main render loop
+  useEffect(() => {
+    const loop = () => {
+      if (dirtyRef.current) {
+        renderMainCanvas();
+        renderMinimap();
+        dirtyRef.current = false;
+      }
+      rafRef.current = requestAnimationFrame(loop);
+    };
+    rafRef.current = requestAnimationFrame(loop);
+    return () => cancelAnimationFrame(rafRef.current);
+  }, [renderMainCanvas, renderMinimap]);
+
+  // Setup canvas size + HiDPI
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const parent = canvas.parentElement;
+    if (!parent) return;
+
+    const resize = () => {
+      const rect = parent.getBoundingClientRect();
+      const size = Math.min(rect.width, rect.height || rect.width);
+      if (size <= 0) return;
+      const dpr = window.devicePixelRatio || 1;
+      canvas.width = size * dpr;
+      canvas.height = size * dpr;
+      canvas.style.width = `${size}px`;
+      canvas.style.height = `${size}px`;
+      const ctx = canvas.getContext("2d");
+      if (ctx) {
+        ctx.setTransform(1, 0, 0, 1, 0, 0);
+        ctx.scale(dpr, dpr);
+      }
+      canvasSizeRef.current = { w: size, h: size };
+      clampCamera();
+      markDirty();
+    };
+
+    resize();
+    const observer = new ResizeObserver(resize);
+    observer.observe(parent);
+    return () => observer.disconnect();
+  }, [clampCamera, markDirty]);
+
+  // Setup minimap HiDPI
+  useEffect(() => {
+    const minimap = minimapRef.current;
+    if (!minimap) return;
+    const dpr = window.devicePixelRatio || 1;
+    minimap.width = MINIMAP_SIZE * dpr;
+    minimap.height = MINIMAP_SIZE * dpr;
+    minimap.style.width = `${MINIMAP_SIZE}px`;
+    minimap.style.height = `${MINIMAP_SIZE}px`;
+    const ctx = minimap.getContext("2d");
+    if (ctx) {
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
+      ctx.scale(dpr, dpr);
+    }
+    markDirty();
+  }, [markDirty]);
+
+  // Mouse wheel zoom (attached manually to get { passive: false })
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    const onWheel = (e: WheelEvent) => {
+      e.preventDefault();
+      const rect = canvas.getBoundingClientRect();
+      const mouseX = e.clientX - rect.left;
+      const mouseY = e.clientY - rect.top;
+      const camera = cameraRef.current;
+      const worldX = camera.x + mouseX / camera.zoom;
+      const worldY = camera.y + mouseY / camera.zoom;
+      const delta = -e.deltaY * ZOOM_SENSITIVITY;
+      const newZoom = Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, camera.zoom * (1 + delta)));
+      camera.zoom = newZoom;
+      camera.x = worldX - mouseX / newZoom;
+      camera.y = worldY - mouseY / newZoom;
+      clampCamera();
+      markDirty();
+    };
+
+    canvas.addEventListener("wheel", onWheel, { passive: false });
+    return () => canvas.removeEventListener("wheel", onWheel);
+  }, [clampCamera, markDirty]);
+
+  // Canvas mouse handlers
+  const handleMouseDown = useCallback((e: React.MouseEvent<HTMLCanvasElement>) => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const rect = canvas.getBoundingClientRect();
+    const mouseX = e.clientX - rect.left;
+    const mouseY = e.clientY - rect.top;
+    const cell = screenToGrid(mouseX, mouseY);
+
+    // Right click: remove item at cell
+    if (e.button === 2) {
+      e.preventDefault();
+      if (cell) {
+        const placement = spatialIndexRef.current.get(`${cell.row},${cell.col}`);
+        if (placement) onRemoveRef.current(placement.instanceId);
+      }
+      return;
+    }
+
+    // Left click
+    if (e.button === 0) {
+      const mode = toolModeRef.current;
+      const sel = selectedItemIdRef.current;
+      if (mode === "erase") {
+        if (cell) {
+          const placement = spatialIndexRef.current.get(`${cell.row},${cell.col}`);
+          if (placement) onRemoveRef.current(placement.instanceId);
+        }
+        return;
+      }
+      if (sel && cell) {
+        onPlaceRef.current(sel, cell.row, cell.col);
+        return;
+      }
+      // Start panning
+      isPanningRef.current = true;
+      const camera = cameraRef.current;
+      panStartRef.current = { mouseX, mouseY, camX: camera.x, camY: camera.y };
+      setCursorStyle("grabbing");
+    }
+  }, [screenToGrid]);
+
+  const handleMouseMove = useCallback((e: React.MouseEvent<HTMLCanvasElement>) => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const rect = canvas.getBoundingClientRect();
+    const mouseX = e.clientX - rect.left;
+    const mouseY = e.clientY - rect.top;
+
+    if (isPanningRef.current && panStartRef.current) {
+      const camera = cameraRef.current;
+      const dx = mouseX - panStartRef.current.mouseX;
+      const dy = mouseY - panStartRef.current.mouseY;
+      camera.x = panStartRef.current.camX - dx / camera.zoom;
+      camera.y = panStartRef.current.camY - dy / camera.zoom;
+      clampCamera();
+      markDirty();
+      return;
+    }
+
+    // Track hovered cell
+    const cell = screenToGrid(mouseX, mouseY);
+    const prev = hoveredCellRef.current;
+    if ((prev?.row !== cell?.row) || (prev?.col !== cell?.col)) {
+      hoveredCellRef.current = cell;
+      markDirty();
+    }
+  }, [clampCamera, markDirty, screenToGrid]);
+
+  const handleMouseUp = useCallback(() => {
+    if (isPanningRef.current) {
+      isPanningRef.current = false;
+      panStartRef.current = null;
+      const sel = selectedItemIdRef.current;
+      const mode = toolModeRef.current;
+      setCursorStyle(mode === "erase" ? "not-allowed" : sel ? "crosshair" : "grab");
+    }
+  }, []);
+
+  const handleMouseLeave = useCallback(() => {
+    isPanningRef.current = false;
+    panStartRef.current = null;
+    hoveredCellRef.current = null;
+    markDirty();
+  }, [markDirty]);
+
+  const handleContextMenu = useCallback((e: React.MouseEvent<HTMLCanvasElement>) => {
+    e.preventDefault();
+  }, []);
+
+  // Minimap click/drag to jump viewport
+  const jumpCameraToMinimap = useCallback((mouseX: number, mouseY: number) => {
+    const camera = cameraRef.current;
+    const { w, h } = canvasSizeRef.current;
+    const scale = WORLD_SIZE / MINIMAP_SIZE;
+    const worldX = mouseX * scale;
+    const worldY = mouseY * scale;
+    camera.x = worldX - w / camera.zoom / 2;
+    camera.y = worldY - h / camera.zoom / 2;
+    clampCamera();
+    markDirty();
+  }, [clampCamera, markDirty]);
+
+  const handleMinimapMouseDown = useCallback((e: React.MouseEvent<HTMLCanvasElement>) => {
+    if (e.button !== 0) return;
+    const minimap = minimapRef.current;
+    if (!minimap) return;
+    const rect = minimap.getBoundingClientRect();
+    isMinimapDraggingRef.current = true;
+    jumpCameraToMinimap(e.clientX - rect.left, e.clientY - rect.top);
+  }, [jumpCameraToMinimap]);
+
+  const handleMinimapMouseMove = useCallback((e: React.MouseEvent<HTMLCanvasElement>) => {
+    if (!isMinimapDraggingRef.current) return;
+    const minimap = minimapRef.current;
+    if (!minimap) return;
+    const rect = minimap.getBoundingClientRect();
+    jumpCameraToMinimap(e.clientX - rect.left, e.clientY - rect.top);
+  }, [jumpCameraToMinimap]);
+
+  const handleMinimapMouseUp = useCallback(() => {
+    isMinimapDraggingRef.current = false;
+  }, []);
+
+  // Zoom controls
+  const zoomBy = useCallback((factor: number) => {
+    const camera = cameraRef.current;
+    const { w, h } = canvasSizeRef.current;
+    const centerWorldX = camera.x + w / camera.zoom / 2;
+    const centerWorldY = camera.y + h / camera.zoom / 2;
+    const newZoom = Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, camera.zoom * factor));
+    camera.zoom = newZoom;
+    camera.x = centerWorldX - w / newZoom / 2;
+    camera.y = centerWorldY - h / newZoom / 2;
+    clampCamera();
+    markDirty();
+  }, [clampCamera, markDirty]);
+
+  const zoomIn = useCallback(() => zoomBy(1.5), [zoomBy]);
+  const zoomOut = useCallback(() => zoomBy(1 / 1.5), [zoomBy]);
+
+  const resetView = useCallback(() => {
+    const camera = cameraRef.current;
+    const { w, h } = canvasSizeRef.current;
+    // Fit whole world
+    camera.zoom = Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, w / WORLD_SIZE));
+    camera.x = 0;
+    camera.y = 0;
+    clampCamera();
+    // Re-center
+    const viewWorldW = w / camera.zoom;
+    const viewWorldH = h / camera.zoom;
+    camera.x = Math.max(0, (WORLD_SIZE - viewWorldW) / 2);
+    camera.y = Math.max(0, (WORLD_SIZE - viewWorldH) / 2);
+    markDirty();
+  }, [clampCamera, markDirty]);
+
+  return {
+    canvasRef,
+    minimapRef,
+    cursorStyle,
+    zoomIn,
+    zoomOut,
+    resetView,
+    handleMouseDown,
+    handleMouseMove,
+    handleMouseUp,
+    handleMouseLeave,
+    handleContextMenu,
+    handleMinimapMouseDown,
+    handleMinimapMouseMove,
+    handleMinimapMouseUp,
+  };
+}
