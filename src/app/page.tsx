@@ -16,14 +16,14 @@ export default function HomePage() {
       </div>
 
       {/* Feature Cards */}
-      <div className="grid md:grid-cols-2 gap-8 max-w-2xl mx-auto">
+      <div className="grid md:grid-cols-3 gap-6 max-w-3xl mx-auto">
         <Link href="/planner" className="group">
           <Card className="hover:shadow-xl transition-all duration-300 group-hover:-translate-y-1 text-left h-full">
             <div className="text-4xl mb-3">🗺️</div>
             <h2 className="text-xl font-bold text-sky-deep mb-2">Island Planner</h2>
             <p className="text-text-secondary text-sm">
-              Drag and drop buildings, decorations, terrain, and Pokemon habitats
-              onto a 16&times;16 grid. Share your layout with friends!
+              Drag and drop buildings, habitats, and terrain onto a grid.
+              Share your layout with friends!
             </p>
             <div className="mt-4 text-sky-deep font-semibold text-sm group-hover:translate-x-1 transition-transform">
               Start planning &rarr;
@@ -36,11 +36,25 @@ export default function HomePage() {
             <div className="text-4xl mb-3">✅</div>
             <h2 className="text-xl font-bold text-sky-deep mb-2">Progress Tracker</h2>
             <p className="text-text-secondary text-sm">
-              Track buildings to unlock, resources to gather, island goals,
-              and Pokemon to attract. Never lose your progress!
+              Track buildings, materials, habitats, Cloud Island goals,
+              and Pokemon to befriend.
             </p>
             <div className="mt-4 text-sky-deep font-semibold text-sm group-hover:translate-x-1 transition-transform">
               Track progress &rarr;
+            </div>
+          </Card>
+        </Link>
+
+        <Link href="/guide" className="group">
+          <Card className="hover:shadow-xl transition-all duration-300 group-hover:-translate-y-1 text-left h-full">
+            <div className="text-4xl mb-3">📖</div>
+            <h2 className="text-xl font-bold text-sky-deep mb-2">Pokopia Guide</h2>
+            <p className="text-text-secondary text-sm">
+              Cloud Island tips, building mechanics, materials &amp; crafting,
+              habitats, and beginner strategies.
+            </p>
+            <div className="mt-4 text-sky-deep font-semibold text-sm group-hover:translate-x-1 transition-transform">
+              Read guide &rarr;
             </div>
           </Card>
         </Link>
