@@ -37,8 +37,23 @@ export function useCanvasRenderer(
   const canvasSizeRef = useRef<{ w: number; h: number }>({ w: 0, h: 0 });
   const hoveredCellRef = useRef<{ row: number; col: number } | null>(null);
   const isPanningRef = useRef(false);
-  const panStartRef = useRef<{ mouseX: number; mouseY: number; camX: number; camY: number } | null>(null);
+  const dragStartRef = useRef<
+    | {
+        mouseX: number;
+        mouseY: number;
+        camX: number;
+        camY: number;
+        cell: { row: number; col: number } | null;
+        button: number;
+      }
+    | null
+  >(null);
   const isMinimapDraggingRef = useRef(false);
+
+  // Pixel threshold: mousemove beyond this is treated as a drag (pan) rather
+  // than a click. Small enough to feel responsive, large enough to tolerate
+  // the tiny involuntary movements common on Mac trackpads.
+  const DRAG_THRESHOLD = 4;
 
   const [cursorStyle, setCursorStyle] = useState<string>("crosshair");
 
@@ -352,18 +367,98 @@ export function useCanvasRenderer(
     return () => canvas.removeEventListener("wheel", onWheel);
   }, [clampCamera, markDirty]);
 
-  // Canvas mouse handlers
+  // Helper: restore idle cursor based on current mode
+  const restoreIdleCursor = useCallback(() => {
+    const sel = selectedItemIdRef.current;
+    const mode = toolModeRef.current;
+    setCursorStyle(mode === "erase" ? "not-allowed" : sel ? "crosshair" : "grab");
+  }, []);
+
+  // Global mousemove handler while dragging. Attached to window so the cursor
+  // can leave the canvas (common on trackpads) without cancelling the pan.
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    const onWindowMouseMove = (e: MouseEvent) => {
+      const drag = dragStartRef.current;
+      if (!drag) return;
+      const rect = canvas.getBoundingClientRect();
+      const mouseX = e.clientX - rect.left;
+      const mouseY = e.clientY - rect.top;
+      const dx = mouseX - drag.mouseX;
+      const dy = mouseY - drag.mouseY;
+
+      // Promote to pan once we exceed the drag threshold
+      if (!isPanningRef.current && Math.hypot(dx, dy) > DRAG_THRESHOLD) {
+        isPanningRef.current = true;
+        setCursorStyle("grabbing");
+      }
+
+      if (isPanningRef.current) {
+        const camera = cameraRef.current;
+        camera.x = drag.camX - dx / camera.zoom;
+        camera.y = drag.camY - dy / camera.zoom;
+        clampCamera();
+        markDirty();
+      }
+    };
+
+    const onWindowMouseUp = (e: MouseEvent) => {
+      const drag = dragStartRef.current;
+      if (!drag) return;
+      const wasPanning = isPanningRef.current;
+      dragStartRef.current = null;
+      isPanningRef.current = false;
+      restoreIdleCursor();
+
+      // If we never exceeded the drag threshold, treat as a click
+      if (!wasPanning && drag.button === 0) {
+        const rect = canvas.getBoundingClientRect();
+        const mouseX = e.clientX - rect.left;
+        const mouseY = e.clientY - rect.top;
+        // Only fire click if mouseup happened over the canvas
+        if (
+          mouseX >= 0 &&
+          mouseY >= 0 &&
+          mouseX <= rect.width &&
+          mouseY <= rect.height
+        ) {
+          const cell = screenToGrid(mouseX, mouseY);
+          if (cell) {
+            const mode = toolModeRef.current;
+            const sel = selectedItemIdRef.current;
+            if (mode === "erase") {
+              const placement = spatialIndexRef.current.get(`${cell.row},${cell.col}`);
+              if (placement) onRemoveRef.current(placement.instanceId);
+            } else if (sel) {
+              onPlaceRef.current(sel, cell.row, cell.col);
+            }
+          }
+        }
+      }
+    };
+
+    window.addEventListener("mousemove", onWindowMouseMove);
+    window.addEventListener("mouseup", onWindowMouseUp);
+    return () => {
+      window.removeEventListener("mousemove", onWindowMouseMove);
+      window.removeEventListener("mouseup", onWindowMouseUp);
+    };
+  }, [clampCamera, markDirty, restoreIdleCursor, screenToGrid]);
+
   const handleMouseDown = useCallback((e: React.MouseEvent<HTMLCanvasElement>) => {
     const canvas = canvasRef.current;
     if (!canvas) return;
+    // Prevent browser default (text selection, image drag on Mac)
+    e.preventDefault();
     const rect = canvas.getBoundingClientRect();
     const mouseX = e.clientX - rect.left;
     const mouseY = e.clientY - rect.top;
     const cell = screenToGrid(mouseX, mouseY);
 
-    // Right click: remove item at cell
+    // Right click fires immediately (no drag semantics for remove)
     if (e.button === 2) {
-      e.preventDefault();
       if (cell) {
         const placement = spatialIndexRef.current.get(`${cell.row},${cell.col}`);
         if (placement) onRemoveRef.current(placement.instanceId);
@@ -371,71 +466,50 @@ export function useCanvasRenderer(
       return;
     }
 
-    // Left click
-    if (e.button === 0) {
-      const mode = toolModeRef.current;
-      const sel = selectedItemIdRef.current;
-      if (mode === "erase") {
-        if (cell) {
-          const placement = spatialIndexRef.current.get(`${cell.row},${cell.col}`);
-          if (placement) onRemoveRef.current(placement.instanceId);
-        }
-        return;
-      }
-      if (sel && cell) {
-        onPlaceRef.current(sel, cell.row, cell.col);
-        return;
-      }
-      // Start panning
-      isPanningRef.current = true;
+    // Left click or middle click: record potential drag start. The window-level
+    // handler decides whether this becomes a pan (moved > threshold) or a
+    // click (mouseup without moving).
+    if (e.button === 0 || e.button === 1) {
       const camera = cameraRef.current;
-      panStartRef.current = { mouseX, mouseY, camX: camera.x, camY: camera.y };
-      setCursorStyle("grabbing");
+      dragStartRef.current = {
+        mouseX,
+        mouseY,
+        camX: camera.x,
+        camY: camera.y,
+        cell,
+        button: e.button,
+      };
     }
   }, [screenToGrid]);
 
   const handleMouseMove = useCallback((e: React.MouseEvent<HTMLCanvasElement>) => {
+    // When dragging, the window-level handler updates the camera. Here we just
+    // track the hovered cell for the highlight overlay.
+    if (dragStartRef.current) return;
     const canvas = canvasRef.current;
     if (!canvas) return;
     const rect = canvas.getBoundingClientRect();
     const mouseX = e.clientX - rect.left;
     const mouseY = e.clientY - rect.top;
-
-    if (isPanningRef.current && panStartRef.current) {
-      const camera = cameraRef.current;
-      const dx = mouseX - panStartRef.current.mouseX;
-      const dy = mouseY - panStartRef.current.mouseY;
-      camera.x = panStartRef.current.camX - dx / camera.zoom;
-      camera.y = panStartRef.current.camY - dy / camera.zoom;
-      clampCamera();
-      markDirty();
-      return;
-    }
-
-    // Track hovered cell
     const cell = screenToGrid(mouseX, mouseY);
     const prev = hoveredCellRef.current;
     if ((prev?.row !== cell?.row) || (prev?.col !== cell?.col)) {
       hoveredCellRef.current = cell;
       markDirty();
     }
-  }, [clampCamera, markDirty, screenToGrid]);
+  }, [markDirty, screenToGrid]);
 
   const handleMouseUp = useCallback(() => {
-    if (isPanningRef.current) {
-      isPanningRef.current = false;
-      panStartRef.current = null;
-      const sel = selectedItemIdRef.current;
-      const mode = toolModeRef.current;
-      setCursorStyle(mode === "erase" ? "not-allowed" : sel ? "crosshair" : "grab");
-    }
+    // Handled by the window-level mouseup listener
   }, []);
 
   const handleMouseLeave = useCallback(() => {
-    isPanningRef.current = false;
-    panStartRef.current = null;
-    hoveredCellRef.current = null;
-    markDirty();
+    // Don't cancel dragging here — the window listener keeps the pan alive.
+    // Just clear the hover highlight.
+    if (!dragStartRef.current) {
+      hoveredCellRef.current = null;
+      markDirty();
+    }
   }, [markDirty]);
 
   const handleContextMenu = useCallback((e: React.MouseEvent<HTMLCanvasElement>) => {

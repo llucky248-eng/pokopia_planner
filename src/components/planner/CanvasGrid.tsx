@@ -50,7 +50,15 @@ export default function CanvasGrid({
           onMouseUp={handleMouseUp}
           onMouseLeave={handleMouseLeave}
           onContextMenu={handleContextMenu}
-          style={{ cursor: cursorStyle, display: "block", width: "100%", height: "100%" }}
+          style={{
+            cursor: cursorStyle,
+            display: "block",
+            width: "100%",
+            height: "100%",
+            userSelect: "none",
+            WebkitUserSelect: "none",
+            touchAction: "none",
+          }}
         />
 
         {/* Zoom controls */}
@@ -85,8 +93,9 @@ export default function CanvasGrid({
             <ul className="list-disc list-inside space-y-0.5">
               <li>Select an item from the palette</li>
               <li>Click a cell to place it</li>
+              <li>Drag anywhere to pan the map</li>
+              <li>Scroll / pinch to zoom</li>
               <li>Right-click to remove items</li>
-              <li>Drag to pan, scroll to zoom</li>
             </ul>
           </div>
         )}
