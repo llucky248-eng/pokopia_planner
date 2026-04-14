@@ -1,4 +1,10 @@
-export type ItemCategory = "buildings" | "decorations" | "terrain" | "habitats";
+export type ItemCategory =
+  | "buildings"
+  | "blocks"
+  | "roads"
+  | "nature"
+  | "outdoor"
+  | "habitats";
 
 export interface CatalogItem {
   id: string;

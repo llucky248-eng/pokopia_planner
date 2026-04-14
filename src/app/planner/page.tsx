@@ -2,11 +2,10 @@
 
 import { Suspense, useState, useEffect } from "react";
 import { useSearchParams } from "next/navigation";
-import { DragDropProvider } from "@dnd-kit/react";
-import type { DragEndEvent } from "@dnd-kit/dom";
 import { useGridState } from "@/hooks/useGridState";
 import { useShareableLink } from "@/hooks/useShareableLink";
-import GridCanvas from "@/components/planner/GridCanvas";
+import { getItemById } from "@/data/items";
+import CanvasGrid from "@/components/planner/CanvasGrid";
 import ItemPalette from "@/components/planner/ItemPalette";
 import PlannerToolbar from "@/components/planner/PlannerToolbar";
 import ShareModal from "@/components/planner/ShareModal";
@@ -15,7 +14,7 @@ export default function PlannerPage() {
   return (
     <Suspense
       fallback={
-        <div className="max-w-6xl mx-auto px-4 py-6 text-center text-text-secondary">
+        <div className="max-w-7xl mx-auto px-4 py-6 text-center text-text-secondary">
           Loading planner...
         </div>
       }
@@ -27,10 +26,12 @@ export default function PlannerPage() {
 
 function PlannerContent() {
   const searchParams = useSearchParams();
-  const { grid, placeItem, moveItem, removeItem, clearAll, undo, loadGrid } = useGridState();
+  const { grid, placeItem, removeItem, clearAll, undo, loadGrid } = useGridState();
   const { generateLink, loadFromUrl } = useShareableLink();
   const [shareUrl, setShareUrl] = useState<string | null>(null);
   const [loaded, setLoaded] = useState(false);
+  const [selectedItemId, setSelectedItemId] = useState<string | null>(null);
+  const [toolMode, setToolMode] = useState<"place" | "erase">("place");
 
   useEffect(() => {
     if (loaded) return;
@@ -41,24 +42,17 @@ function PlannerContent() {
     setLoaded(true);
   }, [searchParams, loadFromUrl, loadGrid, loaded]);
 
-  const handleDragEnd = (event: DragEndEvent) => {
-    if (event.canceled) return;
-    const { source, target } = event.operation;
-    if (!source || !target) return;
+  const handleSelectItem = (itemId: string) => {
+    setSelectedItemId((prev) => (prev === itemId ? null : itemId));
+    setToolMode("place");
+  };
 
-    const sourceData = source.data as Record<string, unknown> | undefined;
-    const targetData = target.data as Record<string, unknown> | undefined;
-    if (!sourceData || !targetData) return;
-
-    if (targetData.type !== "cell") return;
-    const row = targetData.row as number;
-    const col = targetData.col as number;
-
-    if (sourceData.type === "palette") {
-      placeItem(sourceData.itemId as string, row, col);
-    } else if (sourceData.type === "placed") {
-      moveItem(sourceData.instanceId as string, row, col);
-    }
+  const handleToggleErase = () => {
+    setToolMode((prev) => {
+      const next = prev === "erase" ? "place" : "erase";
+      if (next === "erase") setSelectedItemId(null);
+      return next;
+    });
   };
 
   const handleShare = () => {
@@ -66,23 +60,41 @@ function PlannerContent() {
     setShareUrl(url);
   };
 
+  const selectedItem = selectedItemId ? getItemById(selectedItemId) : null;
+  const selectedItemName = selectedItem ? `${selectedItem.emoji} ${selectedItem.name}` : null;
+
   return (
-    <div className="max-w-6xl mx-auto px-4 py-6">
-      <h1 className="text-2xl font-bold text-sky-deep mb-4">Island Planner</h1>
-      <DragDropProvider onDragEnd={handleDragEnd}>
-        <div className="flex flex-col lg:flex-row gap-4">
-          <ItemPalette />
-          <div className="flex-1 flex flex-col gap-4">
-            <PlannerToolbar
-              onUndo={undo}
-              onClear={clearAll}
-              onShare={handleShare}
-              itemCount={grid.placements.length}
-            />
-            <GridCanvas grid={grid} onRemove={removeItem} />
-          </div>
+    <div className="max-w-7xl mx-auto px-4 py-6">
+      <div className="mb-4">
+        <h1 className="text-2xl font-bold text-sky-deep">Island Planner</h1>
+        <p className="text-sm text-text-secondary">
+          Plan your 368×368 cloud island. Scroll to zoom, drag to pan, right-click to remove items.
+        </p>
+      </div>
+      <div className="flex flex-col lg:flex-row gap-4">
+        <ItemPalette
+          selectedItemId={selectedItemId}
+          onSelectItem={handleSelectItem}
+        />
+        <div className="flex-1 flex flex-col gap-4 min-w-0">
+          <PlannerToolbar
+            onUndo={undo}
+            onClear={clearAll}
+            onShare={handleShare}
+            itemCount={grid.placements.length}
+            selectedItemName={selectedItemName}
+            toolMode={toolMode}
+            onToggleErase={handleToggleErase}
+          />
+          <CanvasGrid
+            grid={grid}
+            selectedItemId={toolMode === "place" ? selectedItemId : null}
+            toolMode={toolMode}
+            onPlace={placeItem}
+            onRemove={removeItem}
+          />
         </div>
-      </DragDropProvider>
+      </div>
       {shareUrl && <ShareModal url={shareUrl} onClose={() => setShareUrl(null)} />}
     </div>
   );

@@ -7,19 +7,26 @@ import PaletteItem from "./PaletteItem";
 
 const TABS: { key: ItemCategory; label: string; icon: string }[] = [
   { key: "buildings", label: "Buildings", icon: "🏠" },
-  { key: "decorations", label: "Decor", icon: "⛲" },
-  { key: "terrain", label: "Terrain", icon: "🌿" },
-  { key: "habitats", label: "Habitats", icon: "🔥" },
+  { key: "blocks", label: "Blocks", icon: "🧱" },
+  { key: "roads", label: "Roads", icon: "🛤️" },
+  { key: "nature", label: "Nature", icon: "🌿" },
+  { key: "outdoor", label: "Outdoor", icon: "🏕️" },
+  { key: "habitats", label: "Habitats", icon: "🐾" },
 ];
 
-export default function ItemPalette() {
+interface ItemPaletteProps {
+  selectedItemId: string | null;
+  onSelectItem: (itemId: string) => void;
+}
+
+export default function ItemPalette({ selectedItemId, onSelectItem }: ItemPaletteProps) {
   const [activeTab, setActiveTab] = useState<ItemCategory>("buildings");
   const items = getItemsByCategory(activeTab);
 
   return (
-    <div className="bg-surface rounded-2xl shadow-lg p-4 w-full lg:w-56 flex-shrink-0">
+    <div className="bg-surface rounded-2xl shadow-lg p-4 w-full lg:w-60 flex-shrink-0">
       <h3 className="font-bold text-sm text-text-primary mb-3">Items</h3>
-      <div className="flex lg:flex-wrap gap-1 mb-3">
+      <div className="flex flex-wrap gap-1 mb-3">
         {TABS.map((tab) => (
           <button
             key={tab.key}
@@ -29,15 +36,21 @@ export default function ItemPalette() {
                 ? "bg-sky-deep text-white shadow"
                 : "bg-cloud-soft text-text-secondary hover:bg-cloud"
             }`}
+            title={tab.label}
           >
             <span>{tab.icon}</span>
-            <span className="hidden sm:inline">{tab.label}</span>
+            <span className="hidden lg:inline">{tab.label}</span>
           </button>
         ))}
       </div>
       <div className="flex lg:flex-col gap-2 overflow-x-auto lg:overflow-x-visible lg:max-h-[60vh] lg:overflow-y-auto pb-2 lg:pb-0">
         {items.map((item) => (
-          <PaletteItem key={item.id} item={item} />
+          <PaletteItem
+            key={item.id}
+            item={item}
+            isSelected={selectedItemId === item.id}
+            onSelect={onSelectItem}
+          />
         ))}
       </div>
     </div>

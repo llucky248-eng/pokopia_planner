@@ -1,27 +1,26 @@
 "use client";
 
-import { useDraggable } from "@dnd-kit/react";
 import { CatalogItem } from "@/types";
 
 interface PaletteItemProps {
   item: CatalogItem;
+  isSelected: boolean;
+  onSelect: (itemId: string) => void;
 }
 
-export default function PaletteItem({ item }: PaletteItemProps) {
-  const { ref, isDragging } = useDraggable({
-    id: `palette-${item.id}`,
-    data: { type: "palette", itemId: item.id },
-  });
-
+export default function PaletteItem({ item, isSelected, onSelect }: PaletteItemProps) {
   return (
-    <div
-      ref={ref}
-      className={`flex items-center gap-2 px-3 py-2 rounded-xl cursor-grab active:cursor-grabbing transition-all duration-150 ${item.color} hover:shadow-md hover:scale-105 ${
-        isDragging ? "opacity-50 scale-95" : ""
+    <button
+      type="button"
+      onClick={() => onSelect(item.id)}
+      className={`w-full flex items-center gap-2 px-3 py-2 rounded-xl transition-all duration-150 ${item.color} hover:shadow-md cursor-pointer text-left ${
+        isSelected
+          ? "ring-2 ring-sky-deep ring-offset-2 scale-[1.02] shadow-lg"
+          : "hover:scale-[1.02]"
       }`}
     >
-      <span className="text-xl">{item.emoji}</span>
+      <span className="text-xl flex-shrink-0">{item.emoji}</span>
       <span className="text-xs font-semibold text-text-primary truncate">{item.name}</span>
-    </div>
+    </button>
   );
 }

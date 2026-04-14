@@ -7,15 +7,42 @@ interface PlannerToolbarProps {
   onClear: () => void;
   onShare: () => void;
   itemCount: number;
+  selectedItemName?: string | null;
+  toolMode: "place" | "erase";
+  onToggleErase: () => void;
 }
 
-export default function PlannerToolbar({ onUndo, onClear, onShare, itemCount }: PlannerToolbarProps) {
+export default function PlannerToolbar({
+  onUndo,
+  onClear,
+  onShare,
+  itemCount,
+  selectedItemName,
+  toolMode,
+  onToggleErase,
+}: PlannerToolbarProps) {
+  const statusText =
+    toolMode === "erase"
+      ? "🧹 Eraser active — click to remove items"
+      : selectedItemName
+        ? `Placing: ${selectedItemName}`
+        : "Select an item to place, or drag to pan";
+
   return (
     <div className="flex flex-wrap items-center justify-between gap-3 bg-surface rounded-2xl shadow-lg px-4 py-3">
-      <div className="text-sm font-semibold text-text-secondary">
-        {itemCount} item{itemCount !== 1 ? "s" : ""} placed
+      <div className="flex flex-col gap-0.5">
+        <div className="text-sm font-semibold text-text-primary">{statusText}</div>
+        <div className="text-xs text-text-secondary">
+          {itemCount} item{itemCount !== 1 ? "s" : ""} placed
+        </div>
       </div>
-      <div className="flex gap-2">
+      <div className="flex flex-wrap gap-2">
+        <Button
+          variant={toolMode === "erase" ? "danger" : "secondary"}
+          onClick={onToggleErase}
+        >
+          {toolMode === "erase" ? "Stop Erasing" : "Eraser"}
+        </Button>
         <Button variant="secondary" onClick={onUndo}>
           Undo
         </Button>
