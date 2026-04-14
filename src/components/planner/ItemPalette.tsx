@@ -8,10 +8,19 @@ import PaletteItem from "./PaletteItem";
 const TABS: { key: ItemCategory; label: string; icon: string }[] = [
   { key: "buildings", label: "Buildings", icon: "🏠" },
   { key: "blocks", label: "Blocks", icon: "🧱" },
-  { key: "roads", label: "Roads", icon: "🛤️" },
   { key: "nature", label: "Nature", icon: "🌿" },
   { key: "outdoor", label: "Outdoor", icon: "🏕️" },
-  { key: "habitats", label: "Habitats", icon: "🐾" },
+  { key: "furniture", label: "Furniture", icon: "🪑" },
+  { key: "utilities", label: "Utilities", icon: "⚙️" },
+  { key: "materials", label: "Materials", icon: "📦" },
+  { key: "food", label: "Food", icon: "🍎" },
+  { key: "misc", label: "Misc.", icon: "✨" },
+  { key: "kits", label: "Kits", icon: "🛖" },
+  { key: "key-items", label: "Key Items", icon: "🗝️" },
+  { key: "other", label: "Other", icon: "🎁" },
+  { key: "lost-relics-l", label: "Relics (L)", icon: "🏺" },
+  { key: "lost-relics-s", label: "Relics (S)", icon: "💠" },
+  { key: "fossils", label: "Fossils", icon: "🦴" },
 ];
 
 interface ItemPaletteProps {

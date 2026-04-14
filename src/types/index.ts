@@ -1,10 +1,19 @@
 export type ItemCategory =
   | "buildings"
   | "blocks"
-  | "roads"
   | "nature"
   | "outdoor"
-  | "habitats";
+  | "furniture"
+  | "utilities"
+  | "materials"
+  | "food"
+  | "misc"
+  | "kits"
+  | "key-items"
+  | "other"
+  | "lost-relics-l"
+  | "lost-relics-s"
+  | "fossils";
 
 export interface CatalogItem {
   id: string;
