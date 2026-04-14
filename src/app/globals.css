@@ -1,0 +1,53 @@
+@import "tailwindcss";
+
+@theme inline {
+  --color-sky-light: #e0f2fe;
+  --color-sky-base: #7dd3fc;
+  --color-sky-deep: #0284c7;
+
+  --color-cloud: #f8fafc;
+  --color-cloud-soft: #f1f5f9;
+
+  --color-grass-light: #bbf7d0;
+  --color-grass-base: #4ade80;
+  --color-grass-deep: #16a34a;
+
+  --color-sunset: #fb923c;
+  --color-berry: #f472b6;
+  --color-golden: #facc15;
+
+  --color-surface: #ffffff;
+  --color-text-primary: #1e293b;
+  --color-text-secondary: #64748b;
+
+  --font-sans: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+}
+
+body {
+  font-family: var(--font-sans);
+  color: var(--color-text-primary);
+  background: linear-gradient(180deg, var(--color-sky-light) 0%, var(--color-cloud) 100%);
+  min-height: 100vh;
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-12px); }
+}
+
+@keyframes float-slow {
+  0%, 100% { transform: translateY(0px) translateX(0px); }
+  50% { transform: translateY(-8px) translateX(6px); }
+}
+
+.animate-float {
+  animation: float 4s ease-in-out infinite;
+}
+
+.animate-float-slow {
+  animation: float-slow 6s ease-in-out infinite;
+}
+
+.animate-float-delay {
+  animation: float 5s ease-in-out 1s infinite;
+}
