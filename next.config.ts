@@ -1,7 +1,11 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  /* config options here */
+  output: "export",
+  basePath: "/pokopia_planner",
+  images: {
+    unoptimized: true,
+  },
 };
 
 export default nextConfig;
