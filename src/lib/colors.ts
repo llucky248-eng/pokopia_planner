@@ -6,12 +6,16 @@ export const TAILWIND_TO_HEX: Record<string, string> = {
   "bg-amber-100": "#fef3c7",
   "bg-amber-200": "#fde68a",
   "bg-amber-300": "#fcd34d",
+  "bg-amber-400": "#fbbf24",
   "bg-orange-200": "#fed7aa",
   "bg-orange-300": "#fdba74",
+  "bg-orange-400": "#fb923c",
+  "bg-orange-500": "#f97316",
   "bg-yellow-100": "#fef9c3",
   "bg-yellow-200": "#fef08a",
   "bg-yellow-300": "#fde047",
   "bg-yellow-400": "#facc15",
+  "bg-yellow-500": "#eab308",
   "bg-green-200": "#bbf7d0",
   "bg-green-300": "#86efac",
   "bg-green-400": "#4ade80",
@@ -42,6 +46,7 @@ export const TAILWIND_TO_HEX: Record<string, string> = {
   "bg-slate-100": "#f1f5f9",
   "bg-slate-200": "#e2e8f0",
   "bg-slate-300": "#cbd5e1",
+  "bg-slate-400": "#94a3b8",
   "bg-lime-200": "#d9f99d",
   "bg-lime-300": "#bef264",
   "bg-purple-200": "#e9d5ff",
@@ -53,6 +58,8 @@ export const TAILWIND_TO_HEX: Record<string, string> = {
   "bg-indigo-300": "#a5b4fc",
   "bg-rose-200": "#fecdd3",
   "bg-rose-300": "#fda4af",
+  "bg-fuchsia-200": "#f5d0fe",
+  "bg-fuchsia-300": "#f0abfc",
 };
 
 export function tailwindToHex(twClass: string): string {
