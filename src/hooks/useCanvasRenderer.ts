@@ -11,7 +11,7 @@ import {
   MINIMAP_SIZE,
   ZOOM_SENSITIVITY,
 } from "@/lib/constants";
-import { getItemById } from "@/data/items";
+import { getItemById, itemWidth, itemHeight } from "@/data/items";
 import { tailwindToHex } from "@/lib/colors";
 
 interface Camera {
@@ -57,16 +57,28 @@ export function useCanvasRenderer(
 
   const [cursorStyle, setCursorStyle] = useState<string>("crosshair");
 
-  // Spatial index: O(1) lookup by row,col
+  // Spatial index: O(1) lookup by any cell a placement occupies.
+  // Multi-cell items map every cell in their footprint to the same PlacedItem.
   const spatialIndex = useMemo(() => {
     const map = new Map<string, PlacedItem>();
     for (const p of grid.placements) {
-      map.set(`${p.row},${p.col}`, p);
+      const catItem = getItemById(p.itemId);
+      const sw = itemWidth(catItem!);
+      const sh = itemHeight(catItem!);
+      for (let dr = 0; dr < sh; dr++) {
+        for (let dc = 0; dc < sw; dc++) {
+          map.set(`${p.row + dr},${p.col + dc}`, p);
+        }
+      }
     }
     return map;
   }, [grid.placements]);
   const spatialIndexRef = useRef(spatialIndex);
   spatialIndexRef.current = spatialIndex;
+
+  // Mirror latest placements into a ref so renderMainCanvas (stable callback) can read them.
+  const placementsRef = useRef(grid.placements);
+  placementsRef.current = grid.placements;
 
   // Store latest props in refs so event handlers always see fresh values
   const selectedItemIdRef = useRef(selectedItemId);
@@ -166,52 +178,59 @@ export function useCanvasRenderer(
     ctx.lineWidth = 2;
     ctx.strokeRect(bx, by, bw, bw);
 
-    // Draw placed items
-    const index = spatialIndexRef.current;
+    // Draw placed items — iterate placements, not cells, to support multi-cell footprints.
     ctx.textBaseline = "middle";
     ctx.textAlign = "center";
-    for (let row = startRow; row <= endRow; row++) {
-      for (let col = startCol; col <= endCol; col++) {
-        const key = `${row},${col}`;
-        const placement = index.get(key);
-        if (!placement) continue;
-        const catItem = getItemById(placement.itemId);
-        if (!catItem) continue;
-        const screenX = (col * BASE_CELL_SIZE - camera.x) * camera.zoom;
-        const screenY = (row * BASE_CELL_SIZE - camera.y) * camera.zoom;
-        ctx.fillStyle = tailwindToHex(catItem.color);
-        ctx.fillRect(screenX, screenY, cellPx, cellPx);
-
-        if (cellPx >= 12) {
-          const fontSize = Math.floor(cellPx * 0.7);
-          ctx.font = `${fontSize}px serif`;
-          ctx.fillStyle = "#1f2937";
-          ctx.fillText(catItem.emoji, screenX + cellPx / 2, screenY + cellPx / 2);
-        }
+    const drawn = new Set<string>();
+    for (const placement of placementsRef.current) {
+      if (drawn.has(placement.instanceId)) continue;
+      const catItem = getItemById(placement.itemId);
+      if (!catItem) continue;
+      const sw = itemWidth(catItem);
+      const sh = itemHeight(catItem);
+      // Skip if footprint is entirely outside the visible range
+      if (placement.col + sw <= startCol || placement.col > endCol ||
+          placement.row + sh <= startRow || placement.row > endRow) continue;
+      drawn.add(placement.instanceId);
+      const screenX = (placement.col * BASE_CELL_SIZE - camera.x) * camera.zoom;
+      const screenY = (placement.row * BASE_CELL_SIZE - camera.y) * camera.zoom;
+      const footW = cellPx * sw;
+      const footH = cellPx * sh;
+      ctx.fillStyle = tailwindToHex(catItem.color);
+      ctx.fillRect(screenX, screenY, footW, footH);
+      // Border around the footprint
+      ctx.strokeStyle = "rgba(0,0,0,0.15)";
+      ctx.lineWidth = 1;
+      ctx.strokeRect(screenX, screenY, footW, footH);
+      if (cellPx >= 6) {
+        const fontSize = Math.floor(Math.min(footW, footH) * 0.55);
+        ctx.font = `${fontSize}px serif`;
+        ctx.fillStyle = "#1f2937";
+        ctx.fillText(catItem.emoji, screenX + footW / 2, screenY + footH / 2);
       }
     }
 
-    // Hover highlight
+    // Hover highlight — show full footprint of the item being placed
     const hovered = hoveredCellRef.current;
     if (hovered) {
+      const selId = selectedItemIdRef.current;
+      const isErase = toolModeRef.current === "erase";
+      const selItem = selId ? getItemById(selId) : null;
+      const hw = selItem ? itemWidth(selItem) : 1;
+      const hh = selItem ? itemHeight(selItem) : 1;
       const screenX = (hovered.col * BASE_CELL_SIZE - camera.x) * camera.zoom;
       const screenY = (hovered.row * BASE_CELL_SIZE - camera.y) * camera.zoom;
-      const isErase = toolModeRef.current === "erase";
-      const hasItem = index.has(`${hovered.row},${hovered.col}`);
+      const hoverW = cellPx * hw;
+      const hoverH = cellPx * hh;
       ctx.fillStyle = isErase
         ? "rgba(239, 68, 68, 0.35)"
-        : selectedItemIdRef.current
+        : selId
           ? "rgba(14, 165, 233, 0.35)"
           : "rgba(125, 211, 252, 0.2)";
-      ctx.fillRect(screenX, screenY, cellPx, cellPx);
-      ctx.strokeStyle = isErase
-        ? "#dc2626"
-        : selectedItemIdRef.current
-          ? "#0284c7"
-          : "#0ea5e9";
+      ctx.fillRect(screenX, screenY, hoverW, hoverH);
+      ctx.strokeStyle = isErase ? "#dc2626" : selId ? "#0284c7" : "#0ea5e9";
       ctx.lineWidth = 2;
-      ctx.strokeRect(screenX + 1, screenY + 1, cellPx - 2, cellPx - 2);
-      void hasItem; // reserved for future tooltip
+      ctx.strokeRect(screenX + 1, screenY + 1, hoverW - 2, hoverH - 2);
     }
   }, []);
 

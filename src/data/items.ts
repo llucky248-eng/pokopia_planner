@@ -1,23 +1,25 @@
 import { CatalogItem, ItemCategory } from "@/types";
 
 // Complete Pokopia item catalog from Serebii.net.
-// 1510 items across 15 categories. Split into per-category arrays and
-// concatenated to avoid TypeScript union-complexity limits on the array literal.
+// Items across 15 categories. Split into per-category arrays and concatenated to
+// avoid TypeScript union-complexity limits on a single 1500-entry literal.
+// sizeW/sizeH are footprint dimensions in grid cells; omit = 1x1.
 
-// Helper reduces repetition; returns CatalogItem without narrowing category per call site.
-const mk = (id: string, name: string, category: ItemCategory, emoji: string, color: string): CatalogItem => ({
-  id,
-  name,
-  category,
-  emoji,
-  color,
-});
+const mk = (
+  id: string,
+  name: string,
+  category: ItemCategory,
+  emoji: string,
+  color: string,
+  sizeW?: number,
+  sizeH?: number,
+): CatalogItem => ({ id, name, category, emoji, color, sizeW, sizeH });
 
 // ---------- Buildings (123) ----------
 const ITEMS_BUILDINGS: CatalogItem[] = [
-  mk("buildings-wooden-steps", "Wooden steps", "buildings", "🪵", "bg-amber-400"),
-  mk("buildings-stylish-steps", "Stylish steps", "buildings", "🪜", "bg-amber-300"),
-  mk("buildings-stone-steps", "Stone steps", "buildings", "🪨", "bg-stone-400"),
+  mk("buildings-wooden-steps", "Wooden steps", "buildings", "🪵", "bg-amber-400", 2, 1),
+  mk("buildings-stylish-steps", "Stylish steps", "buildings", "🪜", "bg-amber-300", 2, 1),
+  mk("buildings-stone-steps", "Stone steps", "buildings", "🪨", "bg-stone-400", 2, 1),
   mk("buildings-concrete-steps", "Concrete steps", "buildings", "🪜", "bg-amber-300"),
   mk("buildings-brick-steps", "Brick steps", "buildings", "🧱", "bg-red-400"),
   mk("buildings-iron-steps", "Iron steps", "buildings", "⬛", "bg-gray-500"),
@@ -763,7 +765,7 @@ const ITEMS_FURNITURE: CatalogItem[] = [
 // ---------- Utilities (75) ----------
 const ITEMS_UTILITIES: CatalogItem[] = [
   mk("utilities-ditto-flag", "Ditto Flag", "utilities", "🚩", "bg-red-400"),
-  mk("utilities-workbench", "Workbench", "utilities", "🔨", "bg-amber-400"),
+  mk("utilities-workbench", "Workbench", "utilities", "🔨", "bg-amber-400", 2, 1),
   mk("utilities-community-box", "Community Box", "utilities", "📦", "bg-amber-300"),
   mk("utilities-frame", "Frame", "utilities", "🖼️", "bg-purple-200"),
   mk("utilities-cutting-board", "Cutting board", "utilities", "🪧", "bg-emerald-200"),
@@ -1098,54 +1100,54 @@ const ITEMS_MISC: CatalogItem[] = [
   mk("misc-inflatable-sudowoodo", "Inflatable Sudowoodo", "misc", "🪑", "bg-amber-200"),
 ];
 
-// ---------- Kits (46) — building kits from Serebii ----------
+// ---------- Kits (46) ----------
 const ITEMS_KITS: CatalogItem[] = [
-  mk("kits-leaf-den-kit", "Leaf den kit", "kits", "🌿", "bg-green-400"),
-  mk("kits-leaf-hut-kit", "Leaf hut kit", "kits", "🌿", "bg-green-400"),
-  mk("kits-leaf-cottage-kit", "Leaf cottage kit", "kits", "🌿", "bg-green-400"),
-  mk("kits-leaf-house-kit", "Leaf house kit", "kits", "🌿", "bg-green-400"),
-  mk("kits-sand-den-kit", "Sand den kit", "kits", "🏖️", "bg-yellow-200"),
-  mk("kits-sand-hut-kit", "Sand hut kit", "kits", "🏖️", "bg-yellow-200"),
-  mk("kits-sand-cottage-kit", "Sand cottage kit", "kits", "🏖️", "bg-yellow-200"),
-  mk("kits-sand-house-kit", "Sand house kit", "kits", "🏖️", "bg-yellow-200"),
-  mk("kits-stone-den-kit", "Stone den kit", "kits", "🪨", "bg-stone-400"),
-  mk("kits-stone-hut-kit", "Stone hut kit", "kits", "🪨", "bg-stone-400"),
-  mk("kits-stone-cottage-kit", "Stone cottage kit", "kits", "🪨", "bg-stone-400"),
-  mk("kits-stone-house-kit", "Stone house kit", "kits", "🪨", "bg-stone-400"),
-  mk("kits-city-den-kit", "City den kit", "kits", "🏙️", "bg-slate-300"),
-  mk("kits-city-hut-kit", "City hut kit", "kits", "🏙️", "bg-slate-300"),
-  mk("kits-city-cottage-kit", "City cottage kit", "kits", "🏙️", "bg-slate-300"),
-  mk("kits-city-house-kit", "City house kit", "kits", "🏙️", "bg-slate-300"),
-  mk("kits-poke-ball-house-kit", "Poké Ball house kit", "kits", "⚪", "bg-red-400"),
-  mk("kits-poke-mart-kit", "Poké Mart kit", "kits", "🏪", "bg-blue-300"),
-  mk("kits-wasteland-pokemon-center-kit", "Wasteland Pokémon Center kit", "kits", "🏥", "bg-stone-300"),
-  mk("kits-beach-pokemon-center-kit", "Beach Pokémon Center kit", "kits", "🏥", "bg-yellow-200"),
-  mk("kits-ridge-pokemon-center-kit", "Ridge Pokémon Center kit", "kits", "🏥", "bg-stone-400"),
-  mk("kits-skyland-pokemon-center-kit", "Skyland Pokémon Center kit", "kits", "🏥", "bg-sky-200"),
-  mk("kits-windmill-kit", "Windmill kit", "kits", "🌬️", "bg-sky-300"),
-  mk("kits-waterwheel-kit", "Waterwheel kit", "kits", "💧", "bg-blue-400"),
-  mk("kits-furnace-kit", "Furnace kit", "kits", "🔥", "bg-orange-500"),
-  mk("kits-charging-station-kit", "Charging station kit", "kits", "🔌", "bg-yellow-500"),
-  mk("kits-pikachu-fountain-kit", "Pikachu fountain kit", "kits", "⛲", "bg-yellow-300"),
-  mk("kits-moonlight-dance-statue-kit", "Moonlight dance statue kit", "kits", "🌙", "bg-indigo-300"),
-  mk("kits-pink-hut-kit", "Pink hut kit", "kits", "🏠", "bg-pink-300"),
-  mk("kits-pink-cottage-kit", "Pink cottage kit", "kits", "🏠", "bg-pink-200"),
-  mk("kits-orange-hut-kit", "Orange hut kit", "kits", "🏠", "bg-orange-400"),
-  mk("kits-orange-cottage-kit", "Orange cottage kit", "kits", "🏠", "bg-orange-300"),
-  mk("kits-gray-hut-kit", "Gray hut kit", "kits", "🏠", "bg-gray-400"),
-  mk("kits-gray-cottage-kit", "Gray cottage kit", "kits", "🏠", "bg-gray-300"),
-  mk("kits-yellow-hut-kit", "Yellow hut kit", "kits", "🏠", "bg-yellow-400"),
-  mk("kits-yellow-cottage-kit", "Yellow cottage kit", "kits", "🏠", "bg-yellow-300"),
-  mk("kits-log-cabin-kit", "Log cabin kit", "kits", "🪵", "bg-amber-400"),
-  mk("kits-small-office-kit", "Small office kit", "kits", "🏢", "bg-slate-300"),
-  mk("kits-relaxing-park-kit", "Relaxing park kit", "kits", "🏞️", "bg-green-300"),
-  mk("kits-stylish-cafe-kit", "Stylish Café kit", "kits", "☕", "bg-amber-300"),
-  mk("kits-concert-stage-kit", "Concert stage kit", "kits", "🎤", "bg-purple-300"),
-  mk("kits-fountain-plaza-kit", "Fountain plaza kit", "kits", "⛲", "bg-blue-300"),
-  mk("kits-altar-of-flame-kit", "Altar of Flame kit", "kits", "🔥", "bg-orange-500"),
-  mk("kits-abandoned-power-plant-kit", "Abandoned Power Plant kit", "kits", "⚡", "bg-yellow-500"),
-  mk("kits-freezing-chambers-kit", "Freezing Chambers kit", "kits", "❄️", "bg-cyan-200"),
-  mk("kits-mysterious-mural-kit", "Mysterious mural kit", "kits", "🖼️", "bg-purple-300"),
+  mk("kits-leaf-den-kit", "Leaf den kit", "kits", "🌿", "bg-green-400", 2, 2),
+  mk("kits-leaf-hut-kit", "Leaf hut kit", "kits", "🌿", "bg-green-400", 3, 3),
+  mk("kits-leaf-cottage-kit", "Leaf cottage kit", "kits", "🌿", "bg-green-400", 5, 4),
+  mk("kits-leaf-house-kit", "Leaf house kit", "kits", "🌿", "bg-green-400", 8, 6),
+  mk("kits-sand-den-kit", "Sand den kit", "kits", "🏖️", "bg-yellow-200", 2, 2),
+  mk("kits-sand-hut-kit", "Sand hut kit", "kits", "🏖️", "bg-yellow-200", 3, 3),
+  mk("kits-sand-cottage-kit", "Sand cottage kit", "kits", "🏖️", "bg-yellow-200", 5, 4),
+  mk("kits-sand-house-kit", "Sand house kit", "kits", "🏖️", "bg-yellow-200", 8, 6),
+  mk("kits-stone-den-kit", "Stone den kit", "kits", "🪨", "bg-stone-400", 2, 2),
+  mk("kits-stone-hut-kit", "Stone hut kit", "kits", "🪨", "bg-stone-400", 3, 3),
+  mk("kits-stone-cottage-kit", "Stone cottage kit", "kits", "🪨", "bg-stone-400", 5, 4),
+  mk("kits-stone-house-kit", "Stone house kit", "kits", "🪨", "bg-stone-400", 8, 6),
+  mk("kits-city-den-kit", "City den kit", "kits", "🏙️", "bg-slate-300", 2, 2),
+  mk("kits-city-hut-kit", "City hut kit", "kits", "🏙️", "bg-slate-300", 3, 3),
+  mk("kits-city-cottage-kit", "City cottage kit", "kits", "🏙️", "bg-slate-300", 5, 4),
+  mk("kits-city-house-kit", "City house kit", "kits", "🏙️", "bg-slate-300", 8, 6),
+  mk("kits-poke-ball-house-kit", "Poké Ball house kit", "kits", "⚪", "bg-red-400", 6, 6),
+  mk("kits-poke-mart-kit", "Poké Mart kit", "kits", "🏪", "bg-blue-300", 5, 5),
+  mk("kits-wasteland-pokemon-center-kit", "Wasteland Pokémon Center kit", "kits", "🏥", "bg-stone-300", 10, 10),
+  mk("kits-beach-pokemon-center-kit", "Beach Pokémon Center kit", "kits", "🏥", "bg-yellow-200", 10, 10),
+  mk("kits-ridge-pokemon-center-kit", "Ridge Pokémon Center kit", "kits", "🏥", "bg-stone-400", 10, 10),
+  mk("kits-skyland-pokemon-center-kit", "Skyland Pokémon Center kit", "kits", "🏥", "bg-sky-200", 10, 10),
+  mk("kits-windmill-kit", "Windmill kit", "kits", "🌬️", "bg-sky-300", 2, 5),
+  mk("kits-waterwheel-kit", "Waterwheel kit", "kits", "💧", "bg-blue-400", 3, 5),
+  mk("kits-furnace-kit", "Furnace kit", "kits", "🔥", "bg-orange-500", 3, 3),
+  mk("kits-charging-station-kit", "Charging station kit", "kits", "🔌", "bg-yellow-500", 2, 2),
+  mk("kits-pikachu-fountain-kit", "Pikachu fountain kit", "kits", "⛲", "bg-yellow-300", 6, 6),
+  mk("kits-moonlight-dance-statue-kit", "Moonlight dance statue kit", "kits", "🌙", "bg-indigo-300", 4, 3),
+  mk("kits-pink-hut-kit", "Pink hut kit", "kits", "🏠", "bg-pink-300", 6, 6),
+  mk("kits-pink-cottage-kit", "Pink cottage kit", "kits", "🏠", "bg-pink-200", 8, 8),
+  mk("kits-orange-hut-kit", "Orange hut kit", "kits", "🏠", "bg-orange-400", 6, 6),
+  mk("kits-orange-cottage-kit", "Orange cottage kit", "kits", "🏠", "bg-orange-300", 8, 9),
+  mk("kits-gray-hut-kit", "Gray hut kit", "kits", "🏠", "bg-gray-400", 8, 6),
+  mk("kits-gray-cottage-kit", "Gray cottage kit", "kits", "🏠", "bg-gray-300", 8, 9),
+  mk("kits-yellow-hut-kit", "Yellow hut kit", "kits", "🏠", "bg-yellow-400", 6, 5),
+  mk("kits-yellow-cottage-kit", "Yellow cottage kit", "kits", "🏠", "bg-yellow-300", 8, 8),
+  mk("kits-log-cabin-kit", "Log cabin kit", "kits", "🪵", "bg-amber-400", 10, 10),
+  mk("kits-small-office-kit", "Small office kit", "kits", "🏢", "bg-slate-300", 10, 10),
+  mk("kits-relaxing-park-kit", "Relaxing park kit", "kits", "🏞️", "bg-green-300", 10, 10),
+  mk("kits-stylish-cafe-kit", "Stylish Café kit", "kits", "☕", "bg-amber-300", 10, 10),
+  mk("kits-concert-stage-kit", "Concert stage kit", "kits", "🎤", "bg-purple-300", 10, 10),
+  mk("kits-fountain-plaza-kit", "Fountain plaza kit", "kits", "⛲", "bg-blue-300", 8, 8),
+  mk("kits-altar-of-flame-kit", "Altar of Flame kit", "kits", "🔥", "bg-orange-500", 6, 6),
+  mk("kits-abandoned-power-plant-kit", "Abandoned Power Plant kit", "kits", "⚡", "bg-yellow-500", 10, 10),
+  mk("kits-freezing-chambers-kit", "Freezing Chambers kit", "kits", "❄️", "bg-cyan-200", 10, 10),
+  mk("kits-mysterious-mural-kit", "Mysterious mural kit", "kits", "🖼️", "bg-purple-300", 3, 1),
 ];
 
 // ---------- Key Items (8) ----------
@@ -1605,4 +1607,14 @@ export function getItemById(id: string): CatalogItem | undefined {
 
 export function getItemsByCategory(category: CatalogItem["category"]): CatalogItem[] {
   return CATALOG_ITEMS.filter((item) => item.category === category);
+}
+
+/** Default width when sizeW is undefined. */
+export function itemWidth(item: CatalogItem): number {
+  return item.sizeW ?? 1;
+}
+
+/** Default height when sizeH is undefined. */
+export function itemHeight(item: CatalogItem): number {
+  return item.sizeH ?? 1;
 }
