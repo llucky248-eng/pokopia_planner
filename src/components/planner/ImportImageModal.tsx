@@ -38,27 +38,28 @@ export default function ImportImageModal({ isOpen, onClose, onApply }: ImportIma
   const [outputSize, setOutputSize] = useState<number>(128);
   const [fitMode, setFitMode] = useState<FitMode>("fit");
 
-  // Wall detection: Sobel gradient threshold (0-255). Lower = more walls detected.
-  const [wallThreshold, setWallThreshold] = useState<number>(30);
-  const [debouncedWall, setDebouncedWall] = useState<number>(30);
-
   // Road detection: max saturation % (0-50). Higher = more colors count as roads.
   const [roadSatMax, setRoadSatMax] = useState<number>(20);
   const [debouncedRoadSat, setDebouncedRoadSat] = useState<number>(20);
+
+  // Nature detection: min saturation % to classify green/blue as nature (skipped).
+  // Lower = more aggressive nature skipping (fewer walls placed).
+  const [natureSatMin, setNatureSatMin] = useState<number>(18);
+  const [debouncedNatureSat, setDebouncedNatureSat] = useState<number>(18);
 
   const [result, setResult] = useState<ConvertResult | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
   // Debounce sliders.
   useEffect(() => {
-    const t = setTimeout(() => setDebouncedWall(wallThreshold), 150);
-    return () => clearTimeout(t);
-  }, [wallThreshold]);
-
-  useEffect(() => {
     const t = setTimeout(() => setDebouncedRoadSat(roadSatMax), 150);
     return () => clearTimeout(t);
   }, [roadSatMax]);
+
+  useEffect(() => {
+    const t = setTimeout(() => setDebouncedNatureSat(natureSatMin), 150);
+    return () => clearTimeout(t);
+  }, [natureSatMin]);
 
   // Reset state when modal closes.
   useEffect(() => {
@@ -89,10 +90,10 @@ export default function ImportImageModal({ isOpen, onClose, onApply }: ImportIma
       const imageData = drawToGrid(img, outputSize, fitMode);
       const res = convertMapToPlacements(imageData, {
         outputSize,
-        wallThreshold: debouncedWall,
         roadSatMax: debouncedRoadSat,
         roadBriMin: 30,
         roadBriMax: 85,
+        natureSatMin: debouncedNatureSat,
       });
       setResult(res);
       setError(null);
@@ -100,7 +101,7 @@ export default function ImportImageModal({ isOpen, onClose, onApply }: ImportIma
       setError(e instanceof Error ? e.message : "Conversion failed");
       setResult(null);
     }
-  }, [img, outputSize, fitMode, debouncedWall, debouncedRoadSat]);
+  }, [img, outputSize, fitMode, debouncedRoadSat, debouncedNatureSat]);
 
   // Paint the preview canvas whenever the result updates.
   useEffect(() => {
@@ -175,8 +176,9 @@ export default function ImportImageModal({ isOpen, onClose, onApply }: ImportIma
       >
         <h3 className="text-lg font-bold text-sky-deep mb-1">Import Map</h3>
         <p className="text-sm text-text-secondary mb-4">
-          Upload a real-world map or satellite image. Building edges become walls;
-          gray roads become paths. Adjust the sliders to tune detection.
+          Upload a real-world map or satellite image. Buildings become filled
+          walls; gray roads become paths; green/blue areas (parks, water) are
+          left empty. Adjust the sliders to tune detection.
         </p>
 
         <div className="flex flex-col md:flex-row gap-6">
@@ -246,22 +248,6 @@ export default function ImportImageModal({ isOpen, onClose, onApply }: ImportIma
 
             <label className="flex flex-col gap-1">
               <span className="text-xs font-semibold text-text-primary">
-                Edge sensitivity — walls ({wallThreshold})
-              </span>
-              <input
-                type="range"
-                min={5}
-                max={120}
-                value={wallThreshold}
-                onChange={(e) => setWallThreshold(Number(e.target.value))}
-              />
-              <span className="text-xs text-text-secondary">
-                Lower = more building edges detected as walls.
-              </span>
-            </label>
-
-            <label className="flex flex-col gap-1">
-              <span className="text-xs font-semibold text-text-primary">
                 Road sensitivity — max color ({roadSatMax}%)
               </span>
               <input
@@ -273,6 +259,22 @@ export default function ImportImageModal({ isOpen, onClose, onApply }: ImportIma
               />
               <span className="text-xs text-text-secondary">
                 Higher = more gray-ish pixels treated as roads.
+              </span>
+            </label>
+
+            <label className="flex flex-col gap-1">
+              <span className="text-xs font-semibold text-text-primary">
+                Nature tolerance — skip green/blue ({natureSatMin}%)
+              </span>
+              <input
+                type="range"
+                min={5}
+                max={60}
+                value={natureSatMin}
+                onChange={(e) => setNatureSatMin(Number(e.target.value))}
+              />
+              <span className="text-xs text-text-secondary">
+                Lower = skip more parks/water. Higher = fill more pixels as walls.
               </span>
             </label>
           </div>
