@@ -7,14 +7,18 @@ export const ROAD_ITEM_ID = "blocks-stone-flooring";
 
 export interface MapConvertOptions {
   outputSize: number;
-  /** Sobel gradient magnitude threshold (0–255) for wall detection. Default 30. */
-  wallThreshold: number;
   /** Max HSV saturation % (0–100) for a pixel to qualify as road. Default 20. */
   roadSatMax: number;
   /** Min brightness % (0–100) for road pixels. Default 30. */
   roadBriMin: number;
   /** Max brightness % (0–100) for road pixels. Default 85. */
   roadBriMax: number;
+  /**
+   * Min saturation % (0–100) for a green/blue pixel to be classified as nature
+   * (grass or water) and skipped. Lower = more aggressive nature skipping.
+   * Default 18.
+   */
+  natureSatMin: number;
 }
 
 export interface ConvertResult {
@@ -36,18 +40,20 @@ function rgbSaturation(r: number, g: number, b: number): number {
 /**
  * Converts a downscaled map image into catalog-item placements.
  *
- * Detection rules:
- *  - Wall: Sobel gradient magnitude ≥ wallThreshold (strong edges = building outlines).
- *  - Road: not wall, low saturation, mid brightness (gray asphalt / schematic road color).
- *  - Everything else: empty (no placement).
+ * Classification order per pixel:
+ *  1. **Nature** (grass / water / parks): green- or blue-dominant with enough
+ *     saturation → skipped (no placement).
+ *  2. **Road**: low saturation + mid brightness (gray paths / asphalt) → road tile.
+ *  3. **Everything else** (buildings, warm-toned fills, dark edges) → wall tile,
+ *     producing filled building footprints.
  *
- * Works for both satellite photos and schematic maps (OSM screenshots, etc.).
+ * Works for both satellite photos and schematic maps (OSM, Google Maps, etc.).
  */
 export function convertMapToPlacements(
   source: ImageData,
   opts: MapConvertOptions,
 ): ConvertResult {
-  const { outputSize, wallThreshold, roadSatMax, roadBriMin, roadBriMax } = opts;
+  const { outputSize, roadSatMax, roadBriMin, roadBriMax, natureSatMin } = opts;
   const src = source.data;
   const previewPixels = new Uint8ClampedArray(outputSize * outputSize * 4);
   const placements: PlacedItem[] = [];
@@ -58,67 +64,51 @@ export function convertMapToPlacements(
   const stamp = Date.now();
   let idCounter = 0;
 
-  // Grayscale buffer for Sobel convolution.
-  const gray = new Float32Array(outputSize * outputSize);
-  for (let i = 0; i < outputSize * outputSize; i++) {
-    const pi = i * 4;
-    gray[i] = luminance(src[pi], src[pi + 1], src[pi + 2]);
-  }
-
   const satMaxF = roadSatMax / 100;
   const briMinF = roadBriMin / 100;
   const briMaxF = roadBriMax / 100;
-
-  const w = outputSize;
+  const natureSatF = natureSatMin / 100;
 
   for (let y = 0; y < outputSize; y++) {
     for (let x = 0; x < outputSize; x++) {
-      const pi = (y * w + x) * 4;
-      const a = src[pi + 3];
+      const pi = (y * outputSize + x) * 4;
+      const r = src[pi], g = src[pi + 1], b = src[pi + 2], a = src[pi + 3];
       if (a < 64) continue;
 
-      // Sobel 3×3 — clamp-to-edge for border pixels.
-      const x0 = Math.max(x - 1, 0), x1 = x, x2 = Math.min(x + 1, w - 1);
-      const y0 = Math.max(y - 1, 0), y1 = y, y2 = Math.min(y + 1, outputSize - 1);
-      const tl = gray[y0 * w + x0], tc = gray[y0 * w + x1], tr = gray[y0 * w + x2];
-      const ml =                        gray[y1 * w + x0],           mr = gray[y1 * w + x2];
-      const bl = gray[y2 * w + x0], bc = gray[y2 * w + x1], br = gray[y2 * w + x2];
+      const sat = rgbSaturation(r, g, b);
+      const bri = luminance(r, g, b) / 255;
 
-      const gx = -tl - 2 * ml - bl + tr + 2 * mr + br;
-      const gy = -tl - 2 * tc - tr + bl + 2 * bc + br;
-      const gradMag = Math.sqrt(gx * gx + gy * gy);
+      // 1. Nature: green- or blue-dominant, saturated enough → skip.
+      const greenDominant = g > r && g > b && (g - Math.min(r, b)) > 12;
+      const blueDominant = b > r && b > g && (b - Math.min(r, g)) > 12;
+      if ((greenDominant || blueDominant) && sat >= natureSatF) {
+        continue;
+      }
 
-      let itemId: string | null = null;
+      let itemId: string;
       let pr = 0, pg = 0, pb = 0;
 
-      if (gradMag >= wallThreshold) {
-        // Strong edge → building wall.
-        itemId = WALL_ITEM_ID;
-        pr = 105; pg = 100; pb = 95; // preview: dark warm-gray
+      if (sat <= satMaxF && bri >= briMinF && bri <= briMaxF) {
+        // 2. Road: low-saturation gray in mid brightness range.
+        itemId = ROAD_ITEM_ID;
+        pr = 200; pg = 200; pb = 195;
       } else {
-        // Road: low saturation, mid brightness.
-        const r = src[pi], g2 = src[pi + 1], b = src[pi + 2];
-        const sat = rgbSaturation(r, g2, b);
-        const bri = luminance(r, g2, b) / 255;
-        if (sat <= satMaxF && bri >= briMinF && bri <= briMaxF) {
-          itemId = ROAD_ITEM_ID;
-          pr = 200; pg = 200; pb = 195; // preview: light warm-gray
-        }
+        // 3. Building / wall: everything else (solid fill).
+        itemId = WALL_ITEM_ID;
+        pr = 105; pg = 100; pb = 95;
       }
 
-      if (itemId) {
-        previewPixels[pi] = pr;
-        previewPixels[pi + 1] = pg;
-        previewPixels[pi + 2] = pb;
-        previewPixels[pi + 3] = 255;
+      previewPixels[pi] = pr;
+      previewPixels[pi + 1] = pg;
+      previewPixels[pi + 2] = pb;
+      previewPixels[pi + 3] = 255;
 
-        placements.push({
-          instanceId: `import-${stamp}-${idCounter++}`,
-          itemId,
-          row: yOffset + y,
-          col: xOffset + x,
-        });
-      }
+      placements.push({
+        instanceId: `import-${stamp}-${idCounter++}`,
+        itemId,
+        row: yOffset + y,
+        col: xOffset + x,
+      });
     }
   }
 
