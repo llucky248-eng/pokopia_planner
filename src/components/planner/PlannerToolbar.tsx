@@ -52,7 +52,7 @@ export default function PlannerToolbar({
           Clear All
         </Button>
         <Button variant="secondary" onClick={onImport}>
-          Import Image
+          Import Map
         </Button>
         <Button variant="accent" onClick={onShare}>
           Share
