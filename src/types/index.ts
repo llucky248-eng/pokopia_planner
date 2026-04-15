@@ -21,6 +21,10 @@ export interface CatalogItem {
   category: ItemCategory;
   emoji: string;
   color: string;
+  /** Footprint width in cells. Defaults to 1 when omitted. */
+  sizeW?: number;
+  /** Footprint height in cells. Defaults to 1 when omitted. */
+  sizeH?: number;
 }
 
 export interface PlacedItem {

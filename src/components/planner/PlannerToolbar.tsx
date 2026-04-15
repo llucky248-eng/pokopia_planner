@@ -6,6 +6,7 @@ interface PlannerToolbarProps {
   onUndo: () => void;
   onClear: () => void;
   onShare: () => void;
+  onImport: () => void;
   itemCount: number;
   selectedItemName?: string | null;
   toolMode: "place" | "erase";
@@ -16,6 +17,7 @@ export default function PlannerToolbar({
   onUndo,
   onClear,
   onShare,
+  onImport,
   itemCount,
   selectedItemName,
   toolMode,
@@ -48,6 +50,9 @@ export default function PlannerToolbar({
         </Button>
         <Button variant="danger" onClick={onClear}>
           Clear All
+        </Button>
+        <Button variant="secondary" onClick={onImport}>
+          Import Image
         </Button>
         <Button variant="accent" onClick={onShare}>
           Share
