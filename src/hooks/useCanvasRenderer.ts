@@ -25,7 +25,7 @@ const WORLD_SIZE = GRID_SIZE * BASE_CELL_SIZE; // 1472 world units
 export function useCanvasRenderer(
   grid: GridState,
   selectedItemId: string | null,
-  toolMode: "place" | "erase",
+  toolMode: "place" | "erase" | "measure",
   onPlace: (itemId: string, row: number, col: number) => void,
   onRemove: (instanceId: string) => void,
 ) {
@@ -57,6 +57,11 @@ export function useCanvasRenderer(
 
   const [cursorStyle, setCursorStyle] = useState<string>("crosshair");
   const [hoveredItemName, setHoveredItemName] = useState<string | null>(null);
+
+  // Measurement tool state
+  // measureResultRef holds the committed rectangle (r1,c1)-(r2,c2) in grid cells.
+  const measureResultRef = useRef<{ r1: number; c1: number; r2: number; c2: number } | null>(null);
+  const [measureDimensions, setMeasureDimensions] = useState<{ w: number; h: number } | null>(null);
 
   // Spatial index: O(1) lookup by any cell a placement occupies.
   // Multi-cell items map every cell in their footprint to the same PlacedItem.
@@ -99,12 +104,23 @@ export function useCanvasRenderer(
   useEffect(() => {
     if (toolMode === "erase") {
       setCursorStyle("not-allowed");
+    } else if (toolMode === "measure") {
+      setCursorStyle("crosshair");
     } else if (selectedItemId) {
       setCursorStyle("crosshair");
     } else {
       setCursorStyle("grab");
     }
   }, [selectedItemId, toolMode]);
+
+  // Clear committed measurement when leaving measure mode
+  useEffect(() => {
+    if (toolMode !== "measure") {
+      measureResultRef.current = null;
+      setMeasureDimensions(null);
+      markDirty();
+    }
+  }, [toolMode, markDirty]);
 
   // Mark dirty on grid change
   useEffect(() => {
@@ -254,6 +270,61 @@ export function useCanvasRenderer(
       ctx.strokeStyle = isErase ? "#dc2626" : selId ? "#0284c7" : "#0ea5e9";
       ctx.lineWidth = 2;
       ctx.strokeRect(screenX + 1, screenY + 1, hoverW - 2, hoverH - 2);
+    }
+
+    // Measurement overlay — drawn on top of everything else.
+    // Shows a live rectangle while dragging and the committed result after release.
+    const isMeasureMode = toolModeRef.current === "measure";
+    if (isMeasureMode) {
+      let mr1: number | null = null, mc1: number | null = null;
+      let mr2: number | null = null, mc2: number | null = null;
+
+      const liveDrag = dragStartRef.current;
+      if (liveDrag && liveDrag.cell && hoveredCellRef.current) {
+        const s = liveDrag.cell;
+        const en = hoveredCellRef.current;
+        mr1 = Math.min(s.row, en.row);
+        mc1 = Math.min(s.col, en.col);
+        mr2 = Math.max(s.row, en.row);
+        mc2 = Math.max(s.col, en.col);
+      } else if (measureResultRef.current) {
+        const m = measureResultRef.current;
+        mr1 = m.r1; mc1 = m.c1; mr2 = m.r2; mc2 = m.c2;
+      }
+
+      if (mr1 !== null && mc1 !== null && mr2 !== null && mc2 !== null) {
+        const mw = mc2 - mc1 + 1;
+        const mh = mr2 - mr1 + 1;
+        const sx = (mc1 * BASE_CELL_SIZE - camera.x) * camera.zoom;
+        const sy = (mr1 * BASE_CELL_SIZE - camera.y) * camera.zoom;
+        const sw = cellPx * mw;
+        const sh = cellPx * mh;
+
+        ctx.fillStyle = "rgba(16, 185, 129, 0.15)";
+        ctx.fillRect(sx, sy, sw, sh);
+        ctx.strokeStyle = "#059669";
+        ctx.lineWidth = 2;
+        ctx.setLineDash([5, 3]);
+        ctx.strokeRect(sx + 1, sy + 1, sw - 2, sh - 2);
+        ctx.setLineDash([]);
+
+        // Dimension label centred in the rectangle
+        if (sw > 12 && sh > 12) {
+          const label = `${mw} × ${mh}`;
+          const fontSize = Math.max(10, Math.min(16, Math.min(sw, sh) * 0.3));
+          ctx.font = `bold ${fontSize}px sans-serif`;
+          ctx.textAlign = "center";
+          ctx.textBaseline = "middle";
+          const lx = sx + sw / 2;
+          const ly = sy + sh / 2;
+          const tw = ctx.measureText(label).width;
+          const pad = 4;
+          ctx.fillStyle = "rgba(255,255,255,0.88)";
+          ctx.fillRect(lx - tw / 2 - pad, ly - fontSize / 2 - pad, tw + pad * 2, fontSize + pad * 2);
+          ctx.fillStyle = "#065f46";
+          ctx.fillText(label, lx, ly);
+        }
+      }
     }
   }, []);
 
@@ -423,7 +494,10 @@ export function useCanvasRenderer(
   const restoreIdleCursor = useCallback(() => {
     const sel = selectedItemIdRef.current;
     const mode = toolModeRef.current;
-    setCursorStyle(mode === "erase" ? "not-allowed" : sel ? "crosshair" : "grab");
+    if (mode === "erase") setCursorStyle("not-allowed");
+    else if (mode === "measure") setCursorStyle("crosshair");
+    else if (sel) setCursorStyle("crosshair");
+    else setCursorStyle("grab");
   }, []);
 
   // Global mousemove handler while dragging. Attached to window so the cursor
@@ -438,6 +512,19 @@ export function useCanvasRenderer(
       const rect = canvas.getBoundingClientRect();
       const mouseX = e.clientX - rect.left;
       const mouseY = e.clientY - rect.top;
+
+      // In measure mode: track the hovered cell as the live end-point;
+      // never pan.
+      if (toolModeRef.current === "measure") {
+        const cell = screenToGrid(mouseX, mouseY);
+        const prev = hoveredCellRef.current;
+        if (prev?.row !== cell?.row || prev?.col !== cell?.col) {
+          hoveredCellRef.current = cell;
+          markDirty();
+        }
+        return;
+      }
+
       const dx = mouseX - drag.mouseX;
       const dy = mouseY - drag.mouseY;
 
@@ -459,6 +546,25 @@ export function useCanvasRenderer(
     const onWindowMouseUp = (e: MouseEvent) => {
       const drag = dragStartRef.current;
       if (!drag) return;
+
+      // Measure mode: commit the rectangle from drag.cell → hoveredCell.
+      if (toolModeRef.current === "measure") {
+        const start = drag.cell;
+        const end = hoveredCellRef.current;
+        if (start && end) {
+          const r1 = Math.min(start.row, end.row);
+          const c1 = Math.min(start.col, end.col);
+          const r2 = Math.max(start.row, end.row);
+          const c2 = Math.max(start.col, end.col);
+          measureResultRef.current = { r1, c1, r2, c2 };
+          setMeasureDimensions({ w: c2 - c1 + 1, h: r2 - r1 + 1 });
+          markDirty();
+        }
+        dragStartRef.current = null;
+        restoreIdleCursor();
+        return;
+      }
+
       const wasPanning = isPanningRef.current;
       dragStartRef.current = null;
       isPanningRef.current = false;
@@ -649,6 +755,7 @@ export function useCanvasRenderer(
     minimapRef,
     cursorStyle,
     hoveredItemName,
+    measureDimensions,
     zoomIn,
     zoomOut,
     resetView,

@@ -8,11 +8,13 @@ import Button from "@/components/ui/Button";
 interface CanvasGridProps {
   grid: GridState;
   selectedItemId: string | null;
-  toolMode: "place" | "erase";
+  toolMode: "place" | "erase" | "measure";
   onPlace: (itemId: string, row: number, col: number) => void;
   onRemove: (instanceId: string) => void;
   /** Called whenever the item under the cursor changes (null = no item). */
   onHoverItem?: (name: string | null) => void;
+  /** Called whenever the committed measurement changes (null = cleared). */
+  onMeasure?: (dims: { w: number; h: number } | null) => void;
 }
 
 export default function CanvasGrid({
@@ -22,12 +24,14 @@ export default function CanvasGrid({
   onPlace,
   onRemove,
   onHoverItem,
+  onMeasure,
 }: CanvasGridProps) {
   const {
     canvasRef,
     minimapRef,
     cursorStyle,
     hoveredItemName,
+    measureDimensions,
     zoomIn,
     zoomOut,
     resetView,
@@ -44,6 +48,10 @@ export default function CanvasGrid({
   useEffect(() => {
     onHoverItem?.(hoveredItemName);
   }, [hoveredItemName, onHoverItem]);
+
+  useEffect(() => {
+    onMeasure?.(measureDimensions);
+  }, [measureDimensions, onMeasure]);
 
   return (
     <div className="bg-surface/80 backdrop-blur rounded-2xl shadow-lg p-3 relative">
