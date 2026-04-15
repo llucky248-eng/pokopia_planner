@@ -9,6 +9,7 @@ interface PlannerToolbarProps {
   onImport: () => void;
   itemCount: number;
   selectedItemName?: string | null;
+  hoveredItemName?: string | null;
   toolMode: "place" | "erase";
   onToggleErase: () => void;
 }
@@ -20,15 +21,20 @@ export default function PlannerToolbar({
   onImport,
   itemCount,
   selectedItemName,
+  hoveredItemName,
   toolMode,
   onToggleErase,
 }: PlannerToolbarProps) {
   const statusText =
     toolMode === "erase"
-      ? "🧹 Eraser active — click to remove items"
+      ? hoveredItemName
+        ? `🧹 Erasing: ${hoveredItemName}`
+        : "🧹 Eraser active — click to remove items"
       : selectedItemName
         ? `Placing: ${selectedItemName}`
-        : "Select an item to place, or drag to pan";
+        : hoveredItemName
+          ? `Hovering: ${hoveredItemName}`
+          : "Select an item to place, or drag to pan";
 
   return (
     <div className="flex flex-wrap items-center justify-between gap-3 bg-surface rounded-2xl shadow-lg px-4 py-3">

@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect } from "react";
 import { GridState } from "@/types";
 import { useCanvasRenderer } from "@/hooks/useCanvasRenderer";
 import Button from "@/components/ui/Button";
@@ -10,6 +11,8 @@ interface CanvasGridProps {
   toolMode: "place" | "erase";
   onPlace: (itemId: string, row: number, col: number) => void;
   onRemove: (instanceId: string) => void;
+  /** Called whenever the item under the cursor changes (null = no item). */
+  onHoverItem?: (name: string | null) => void;
 }
 
 export default function CanvasGrid({
@@ -18,11 +21,13 @@ export default function CanvasGrid({
   toolMode,
   onPlace,
   onRemove,
+  onHoverItem,
 }: CanvasGridProps) {
   const {
     canvasRef,
     minimapRef,
     cursorStyle,
+    hoveredItemName,
     zoomIn,
     zoomOut,
     resetView,
@@ -35,6 +40,10 @@ export default function CanvasGrid({
     handleMinimapMouseMove,
     handleMinimapMouseUp,
   } = useCanvasRenderer(grid, selectedItemId, toolMode, onPlace, onRemove);
+
+  useEffect(() => {
+    onHoverItem?.(hoveredItemName);
+  }, [hoveredItemName, onHoverItem]);
 
   return (
     <div className="bg-surface/80 backdrop-blur rounded-2xl shadow-lg p-3 relative">

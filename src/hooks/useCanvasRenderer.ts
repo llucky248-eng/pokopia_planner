@@ -56,6 +56,7 @@ export function useCanvasRenderer(
   const DRAG_THRESHOLD = 4;
 
   const [cursorStyle, setCursorStyle] = useState<string>("crosshair");
+  const [hoveredItemName, setHoveredItemName] = useState<string | null>(null);
 
   // Spatial index: O(1) lookup by any cell a placement occupies.
   // Multi-cell items map every cell in their footprint to the same PlacedItem.
@@ -210,16 +211,38 @@ export function useCanvasRenderer(
       }
     }
 
-    // Hover highlight — show full footprint of the item being placed
+    // Hover highlight — show full footprint of the item being placed/erased.
+    // In erase mode we look up the placed item under the cursor and highlight
+    // its full footprint from its anchor cell.
     const hovered = hoveredCellRef.current;
     if (hovered) {
       const selId = selectedItemIdRef.current;
       const isErase = toolModeRef.current === "erase";
-      const selItem = selId ? getItemById(selId) : null;
-      const hw = selItem ? itemWidth(selItem) : 1;
-      const hh = selItem ? itemHeight(selItem) : 1;
-      const screenX = (hovered.col * BASE_CELL_SIZE - camera.x) * camera.zoom;
-      const screenY = (hovered.row * BASE_CELL_SIZE - camera.y) * camera.zoom;
+
+      let highlightRow = hovered.row;
+      let highlightCol = hovered.col;
+      let hw = 1;
+      let hh = 1;
+
+      if (isErase) {
+        const p = spatialIndexRef.current.get(`${hovered.row},${hovered.col}`);
+        if (p) {
+          const catItem = getItemById(p.itemId);
+          if (catItem) {
+            hw = itemWidth(catItem);
+            hh = itemHeight(catItem);
+            highlightRow = p.row;
+            highlightCol = p.col;
+          }
+        }
+      } else {
+        const selItem = selId ? getItemById(selId) : null;
+        hw = selItem ? itemWidth(selItem) : 1;
+        hh = selItem ? itemHeight(selItem) : 1;
+      }
+
+      const screenX = (highlightCol * BASE_CELL_SIZE - camera.x) * camera.zoom;
+      const screenY = (highlightRow * BASE_CELL_SIZE - camera.y) * camera.zoom;
       const hoverW = cellPx * hw;
       const hoverH = cellPx * hh;
       ctx.fillStyle = isErase
@@ -243,22 +266,32 @@ export function useCanvasRenderer(
     ctx.fillStyle = "#f0f9ff";
     ctx.fillRect(0, 0, MINIMAP_SIZE, MINIMAP_SIZE);
 
-    // Build ImageData at GRID_SIZE resolution (one pixel per cell)
+    // Build ImageData at GRID_SIZE resolution (one pixel per cell).
+    // Fill every cell of each item's footprint so multi-cell buildings appear
+    // at their correct size rather than as a single dot.
     const imageData = ctx.createImageData(GRID_SIZE, GRID_SIZE);
     const data = imageData.data;
-    // Base fill: transparent
     for (const p of grid.placements) {
       const catItem = getItemById(p.itemId);
       if (!catItem) continue;
+      const sw = itemWidth(catItem);
+      const sh = itemHeight(catItem);
       const hex = tailwindToHex(catItem.color);
       const r = parseInt(hex.slice(1, 3), 16);
       const g = parseInt(hex.slice(3, 5), 16);
       const b = parseInt(hex.slice(5, 7), 16);
-      const idx = (p.row * GRID_SIZE + p.col) * 4;
-      data[idx] = r;
-      data[idx + 1] = g;
-      data[idx + 2] = b;
-      data[idx + 3] = 255;
+      for (let dr = 0; dr < sh; dr++) {
+        for (let dc = 0; dc < sw; dc++) {
+          const row = p.row + dr;
+          const col = p.col + dc;
+          if (row >= GRID_SIZE || col >= GRID_SIZE) continue;
+          const idx = (row * GRID_SIZE + col) * 4;
+          data[idx] = r;
+          data[idx + 1] = g;
+          data[idx + 2] = b;
+          data[idx + 3] = 255;
+        }
+      }
     }
 
     // Draw ImageData to offscreen canvas then scale to minimap
@@ -515,6 +548,14 @@ export function useCanvasRenderer(
     if ((prev?.row !== cell?.row) || (prev?.col !== cell?.col)) {
       hoveredCellRef.current = cell;
       markDirty();
+      // Expose the name of whatever placed item is under the cursor.
+      if (cell) {
+        const p = spatialIndexRef.current.get(`${cell.row},${cell.col}`);
+        const catItem = p ? getItemById(p.itemId) : null;
+        setHoveredItemName(catItem ? `${catItem.emoji} ${catItem.name}` : null);
+      } else {
+        setHoveredItemName(null);
+      }
     }
   }, [markDirty, screenToGrid]);
 
@@ -524,9 +565,10 @@ export function useCanvasRenderer(
 
   const handleMouseLeave = useCallback(() => {
     // Don't cancel dragging here — the window listener keeps the pan alive.
-    // Just clear the hover highlight.
+    // Just clear the hover highlight and item name.
     if (!dragStartRef.current) {
       hoveredCellRef.current = null;
+      setHoveredItemName(null);
       markDirty();
     }
   }, [markDirty]);
@@ -606,6 +648,7 @@ export function useCanvasRenderer(
     canvasRef,
     minimapRef,
     cursorStyle,
+    hoveredItemName,
     zoomIn,
     zoomOut,
     resetView,

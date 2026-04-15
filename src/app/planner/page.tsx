@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useState, useEffect } from "react";
+import { Suspense, useState, useEffect, useCallback } from "react";
 import { useSearchParams } from "next/navigation";
 import { useGridState } from "@/hooks/useGridState";
 import { useShareableLink } from "@/hooks/useShareableLink";
@@ -35,6 +35,7 @@ function PlannerContent() {
   const [loaded, setLoaded] = useState(false);
   const [selectedItemId, setSelectedItemId] = useState<string | null>(null);
   const [toolMode, setToolMode] = useState<"place" | "erase">("place");
+  const [hoveredItemName, setHoveredItemName] = useState<string | null>(null);
 
   useEffect(() => {
     if (loaded) return;
@@ -63,6 +64,29 @@ function PlannerContent() {
     setShareUrl(url);
   };
 
+  const handleHoverItem = useCallback((name: string | null) => {
+    setHoveredItemName(name);
+  }, []);
+
+  // Keyboard shortcuts: Ctrl/Cmd+Z → undo, Escape → cancel selection/erase.
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      // Skip if focus is inside an input/select/textarea (e.g. the import modal).
+      const tag = (e.target as HTMLElement)?.tagName;
+      if (tag === "INPUT" || tag === "SELECT" || tag === "TEXTAREA") return;
+
+      if ((e.ctrlKey || e.metaKey) && e.key === "z") {
+        e.preventDefault();
+        undo();
+      } else if (e.key === "Escape") {
+        setSelectedItemId(null);
+        setToolMode("place");
+      }
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [undo]);
+
   const selectedItem = selectedItemId ? getItemById(selectedItemId) : null;
   const selectedItemName = selectedItem ? `${selectedItem.emoji} ${selectedItem.name}` : null;
 
@@ -87,6 +111,7 @@ function PlannerContent() {
             onImport={() => setIsImportOpen(true)}
             itemCount={grid.placements.length}
             selectedItemName={selectedItemName}
+            hoveredItemName={hoveredItemName}
             toolMode={toolMode}
             onToggleErase={handleToggleErase}
           />
@@ -96,6 +121,7 @@ function PlannerContent() {
             toolMode={toolMode}
             onPlace={placeItem}
             onRemove={removeItem}
+            onHoverItem={handleHoverItem}
           />
         </div>
       </div>
