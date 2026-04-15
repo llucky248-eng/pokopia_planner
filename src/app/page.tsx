@@ -1,7 +1,27 @@
+"use client";
+
+import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { useState } from "react";
 import Card from "@/components/ui/Card";
+import ImportImageModal from "@/components/planner/ImportImageModal";
+import { PlacedItem, GridState } from "@/types";
+import { GRID_SIZE, LOCAL_STORAGE_GRID_KEY } from "@/lib/constants";
 
 export default function HomePage() {
+  const router = useRouter();
+  const [isImportOpen, setIsImportOpen] = useState(false);
+
+  const handleApplyImport = (placements: PlacedItem[]) => {
+    const grid: GridState = { size: GRID_SIZE, placements };
+    try {
+      localStorage.setItem(LOCAL_STORAGE_GRID_KEY, JSON.stringify(grid));
+    } catch {
+      // localStorage full / unavailable — still navigate so user sees in-memory state.
+    }
+    router.push("/planner");
+  };
+
   return (
     <div className="max-w-4xl mx-auto px-4 py-16 text-center">
       {/* Hero */}
@@ -11,12 +31,12 @@ export default function HomePage() {
         </h1>
         <p className="text-xl text-text-secondary max-w-xl mx-auto">
           Design your dream cloud island. Place buildings, create habitats,
-          and track your progress — all in one place.
+          or import a real-world map to start from.
         </p>
       </div>
 
       {/* Feature Cards */}
-      <div className="grid md:grid-cols-3 gap-6 max-w-3xl mx-auto">
+      <div className="grid md:grid-cols-2 gap-6 max-w-2xl mx-auto">
         <Link href="/planner" className="group">
           <Card className="hover:shadow-xl transition-all duration-300 group-hover:-translate-y-1 text-left h-full">
             <div className="text-4xl mb-3">🗺️</div>
@@ -31,34 +51,30 @@ export default function HomePage() {
           </Card>
         </Link>
 
-        <Link href="/checklist" className="group">
+        <button
+          type="button"
+          onClick={() => setIsImportOpen(true)}
+          className="group text-left"
+        >
           <Card className="hover:shadow-xl transition-all duration-300 group-hover:-translate-y-1 text-left h-full">
-            <div className="text-4xl mb-3">✅</div>
-            <h2 className="text-xl font-bold text-sky-deep mb-2">Progress Tracker</h2>
+            <div className="text-4xl mb-3">🛰️</div>
+            <h2 className="text-xl font-bold text-sky-deep mb-2">Import Map</h2>
             <p className="text-text-secondary text-sm">
-              Track buildings, materials, habitats, Cloud Island goals,
-              and Pokemon to befriend.
+              Upload a real-world map or satellite image. Buildings become
+              walls, roads become paths — ready to edit and share.
             </p>
             <div className="mt-4 text-sky-deep font-semibold text-sm group-hover:translate-x-1 transition-transform">
-              Track progress &rarr;
+              Upload &amp; convert &rarr;
             </div>
           </Card>
-        </Link>
-
-        <Link href="/guide" className="group">
-          <Card className="hover:shadow-xl transition-all duration-300 group-hover:-translate-y-1 text-left h-full">
-            <div className="text-4xl mb-3">📖</div>
-            <h2 className="text-xl font-bold text-sky-deep mb-2">Pokopia Guide</h2>
-            <p className="text-text-secondary text-sm">
-              Cloud Island tips, building mechanics, materials &amp; crafting,
-              habitats, and beginner strategies.
-            </p>
-            <div className="mt-4 text-sky-deep font-semibold text-sm group-hover:translate-x-1 transition-transform">
-              Read guide &rarr;
-            </div>
-          </Card>
-        </Link>
+        </button>
       </div>
+
+      <ImportImageModal
+        isOpen={isImportOpen}
+        onClose={() => setIsImportOpen(false)}
+        onApply={handleApplyImport}
+      />
     </div>
   );
 }
