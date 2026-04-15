@@ -9,6 +9,8 @@ import CanvasGrid from "@/components/planner/CanvasGrid";
 import ItemPalette from "@/components/planner/ItemPalette";
 import PlannerToolbar from "@/components/planner/PlannerToolbar";
 import ShareModal from "@/components/planner/ShareModal";
+import ImportImageModal from "@/components/planner/ImportImageModal";
+import { GRID_SIZE } from "@/lib/constants";
 
 export default function PlannerPage() {
   return (
@@ -29,6 +31,7 @@ function PlannerContent() {
   const { grid, placeItem, removeItem, clearAll, undo, loadGrid } = useGridState();
   const { generateLink, loadFromUrl } = useShareableLink();
   const [shareUrl, setShareUrl] = useState<string | null>(null);
+  const [isImportOpen, setIsImportOpen] = useState(false);
   const [loaded, setLoaded] = useState(false);
   const [selectedItemId, setSelectedItemId] = useState<string | null>(null);
   const [toolMode, setToolMode] = useState<"place" | "erase">("place");
@@ -81,6 +84,7 @@ function PlannerContent() {
             onUndo={undo}
             onClear={clearAll}
             onShare={handleShare}
+            onImport={() => setIsImportOpen(true)}
             itemCount={grid.placements.length}
             selectedItemName={selectedItemName}
             toolMode={toolMode}
@@ -96,6 +100,11 @@ function PlannerContent() {
         </div>
       </div>
       {shareUrl && <ShareModal url={shareUrl} onClose={() => setShareUrl(null)} />}
+      <ImportImageModal
+        isOpen={isImportOpen}
+        onClose={() => setIsImportOpen(false)}
+        onApply={(placements) => loadGrid({ size: GRID_SIZE, placements })}
+      />
     </div>
   );
 }
