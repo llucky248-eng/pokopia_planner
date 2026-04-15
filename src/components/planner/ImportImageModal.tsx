@@ -297,12 +297,12 @@ export default function ImportImageModal({ isOpen, onClose, onApply }: ImportIma
             {result && (
               <div className="text-xs text-text-secondary flex gap-3">
                 <span className="flex items-center gap-1">
-                  <span className="inline-block w-3 h-3 rounded-sm bg-[#696460]" />
-                  Walls
+                  <span className="inline-block w-3 h-3 rounded-sm bg-gray-500" />
+                  Walls (Iron wall)
                 </span>
                 <span className="flex items-center gap-1">
-                  <span className="inline-block w-3 h-3 rounded-sm bg-[#c8c8c3]" />
-                  Roads
+                  <span className="inline-block w-3 h-3 rounded-sm bg-stone-400" />
+                  Roads (Stone flooring)
                 </span>
               </div>
             )}

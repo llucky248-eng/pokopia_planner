@@ -1,9 +1,26 @@
 import { PlacedItem } from "@/types";
 import { GRID_SIZE } from "@/lib/constants";
+import { getItemById } from "@/data/items";
+import { tailwindToHex } from "@/lib/colors";
 
 /** Default catalog item IDs for wall and road placements. */
-export const WALL_ITEM_ID = "blocks-stone-brick-wall";
+export const WALL_ITEM_ID = "blocks-iron-wall";
 export const ROAD_ITEM_ID = "blocks-stone-flooring";
+
+/** Parse "#rrggbb" → [r, g, b]. */
+function hexToRgb(hex: string): [number, number, number] {
+  const m = /^#([0-9a-fA-F]{6})$/.exec(hex);
+  if (!m) return [128, 128, 128];
+  const n = parseInt(m[1], 16);
+  return [(n >> 16) & 0xff, (n >> 8) & 0xff, n & 0xff];
+}
+
+/** Preview RGB for an item — matches what the canvas renderer will draw. */
+function previewRgbForItem(itemId: string): [number, number, number] {
+  const item = getItemById(itemId);
+  if (!item) return [128, 128, 128];
+  return hexToRgb(tailwindToHex(item.color));
+}
 
 export interface MapConvertOptions {
   outputSize: number;
@@ -69,6 +86,9 @@ export function convertMapToPlacements(
   const briMaxF = roadBriMax / 100;
   const natureSatF = natureSatMin / 100;
 
+  const [wr, wg, wb] = previewRgbForItem(WALL_ITEM_ID);
+  const [rdr, rdg, rdb] = previewRgbForItem(ROAD_ITEM_ID);
+
   for (let y = 0; y < outputSize; y++) {
     for (let x = 0; x < outputSize; x++) {
       const pi = (y * outputSize + x) * 4;
@@ -91,11 +111,11 @@ export function convertMapToPlacements(
       if (sat <= satMaxF && bri >= briMinF && bri <= briMaxF) {
         // 2. Road: low-saturation gray in mid brightness range.
         itemId = ROAD_ITEM_ID;
-        pr = 200; pg = 200; pb = 195;
+        pr = rdr; pg = rdg; pb = rdb;
       } else {
         // 3. Building / wall: everything else (solid fill).
         itemId = WALL_ITEM_ID;
-        pr = 105; pg = 100; pb = 95;
+        pr = wr; pg = wg; pb = wb;
       }
 
       previewPixels[pi] = pr;
