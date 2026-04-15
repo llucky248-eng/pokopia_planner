@@ -10,8 +10,10 @@ interface PlannerToolbarProps {
   itemCount: number;
   selectedItemName?: string | null;
   hoveredItemName?: string | null;
-  toolMode: "place" | "erase";
+  measureDimensions?: { w: number; h: number } | null;
+  toolMode: "place" | "erase" | "measure";
   onToggleErase: () => void;
+  onToggleMeasure: () => void;
 }
 
 export default function PlannerToolbar({
@@ -22,19 +24,25 @@ export default function PlannerToolbar({
   itemCount,
   selectedItemName,
   hoveredItemName,
+  measureDimensions,
   toolMode,
   onToggleErase,
+  onToggleMeasure,
 }: PlannerToolbarProps) {
   const statusText =
     toolMode === "erase"
       ? hoveredItemName
         ? `🧹 Erasing: ${hoveredItemName}`
         : "🧹 Eraser active — click to remove items"
-      : selectedItemName
-        ? `Placing: ${selectedItemName}`
-        : hoveredItemName
-          ? `Hovering: ${hoveredItemName}`
-          : "Select an item to place, or drag to pan";
+      : toolMode === "measure"
+        ? measureDimensions
+          ? `📐 ${measureDimensions.w} × ${measureDimensions.h} cells`
+          : "📐 Drag on the grid to measure an area"
+        : selectedItemName
+          ? `Placing: ${selectedItemName}`
+          : hoveredItemName
+            ? `Hovering: ${hoveredItemName}`
+            : "Select an item to place, or drag to pan";
 
   return (
     <div className="flex flex-wrap items-center justify-between gap-3 bg-surface rounded-2xl shadow-lg px-4 py-3">
@@ -50,6 +58,12 @@ export default function PlannerToolbar({
           onClick={onToggleErase}
         >
           {toolMode === "erase" ? "Stop Erasing" : "Eraser"}
+        </Button>
+        <Button
+          variant={toolMode === "measure" ? "accent" : "secondary"}
+          onClick={onToggleMeasure}
+        >
+          {toolMode === "measure" ? "Stop Measuring" : "Measure"}
         </Button>
         <Button variant="secondary" onClick={onUndo}>
           Undo

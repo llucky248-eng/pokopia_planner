@@ -34,8 +34,9 @@ function PlannerContent() {
   const [isImportOpen, setIsImportOpen] = useState(false);
   const [loaded, setLoaded] = useState(false);
   const [selectedItemId, setSelectedItemId] = useState<string | null>(null);
-  const [toolMode, setToolMode] = useState<"place" | "erase">("place");
+  const [toolMode, setToolMode] = useState<"place" | "erase" | "measure">("place");
   const [hoveredItemName, setHoveredItemName] = useState<string | null>(null);
+  const [measureDimensions, setMeasureDimensions] = useState<{ w: number; h: number } | null>(null);
 
   useEffect(() => {
     if (loaded) return;
@@ -59,6 +60,11 @@ function PlannerContent() {
     });
   };
 
+  const handleToggleMeasure = () => {
+    setToolMode((prev) => (prev === "measure" ? "place" : "measure"));
+    setMeasureDimensions(null);
+  };
+
   const handleShare = () => {
     const url = generateLink(grid);
     setShareUrl(url);
@@ -66,6 +72,10 @@ function PlannerContent() {
 
   const handleHoverItem = useCallback((name: string | null) => {
     setHoveredItemName(name);
+  }, []);
+
+  const handleMeasure = useCallback((dims: { w: number; h: number } | null) => {
+    setMeasureDimensions(dims);
   }, []);
 
   // Keyboard shortcuts: Ctrl/Cmd+Z → undo, Escape → cancel selection/erase.
@@ -81,6 +91,7 @@ function PlannerContent() {
       } else if (e.key === "Escape") {
         setSelectedItemId(null);
         setToolMode("place");
+        setMeasureDimensions(null);
       }
     };
     window.addEventListener("keydown", onKeyDown);
@@ -112,8 +123,10 @@ function PlannerContent() {
             itemCount={grid.placements.length}
             selectedItemName={selectedItemName}
             hoveredItemName={hoveredItemName}
+            measureDimensions={measureDimensions}
             toolMode={toolMode}
             onToggleErase={handleToggleErase}
+            onToggleMeasure={handleToggleMeasure}
           />
           <CanvasGrid
             grid={grid}
@@ -122,6 +135,7 @@ function PlannerContent() {
             onPlace={placeItem}
             onRemove={removeItem}
             onHoverItem={handleHoverItem}
+            onMeasure={handleMeasure}
           />
         </div>
       </div>
