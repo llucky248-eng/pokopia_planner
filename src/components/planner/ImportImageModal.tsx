@@ -1,20 +1,17 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Button from "@/components/ui/Button";
-import { ItemCategory, PlacedItem } from "@/types";
+import { PlacedItem } from "@/types";
 import { GRID_SIZE } from "@/lib/constants";
-import { buildPalette } from "@/lib/imageImport/palette";
 import { drawToGrid, loadImageFile, FitMode } from "@/lib/imageImport/downscale";
-import { convertImageDataToPlacements, ConvertResult } from "@/lib/imageImport/convert";
+import { convertMapToPlacements, ConvertResult } from "@/lib/imageImport/convert";
 
 interface ImportImageModalProps {
   isOpen: boolean;
   onClose: () => void;
   onApply: (placements: PlacedItem[]) => void;
 }
-
-type PaletteChoice = "all" | ItemCategory;
 
 const OUTPUT_SIZES: { value: number; label: string }[] = [
   { value: 64, label: "64×64 (tiny)" },
@@ -30,25 +27,6 @@ const FIT_MODES: { value: FitMode; label: string }[] = [
   { value: "stretch", label: "Stretch" },
 ];
 
-const PALETTE_CHOICES: { value: PaletteChoice; label: string }[] = [
-  { value: "all", label: "All catalog" },
-  { value: "buildings", label: "Buildings" },
-  { value: "blocks", label: "Blocks" },
-  { value: "nature", label: "Nature" },
-  { value: "outdoor", label: "Outdoor" },
-  { value: "furniture", label: "Furniture" },
-  { value: "utilities", label: "Utilities" },
-  { value: "materials", label: "Materials" },
-  { value: "food", label: "Food" },
-  { value: "misc", label: "Misc." },
-  { value: "kits", label: "Kits" },
-  { value: "key-items", label: "Key Items" },
-  { value: "other", label: "Other" },
-  { value: "lost-relics-l", label: "Relics (L)" },
-  { value: "lost-relics-s", label: "Relics (S)" },
-  { value: "fossils", label: "Fossils" },
-];
-
 const PREVIEW_CSS_SIZE = 256;
 
 export default function ImportImageModal({ isOpen, onClose, onApply }: ImportImageModalProps) {
@@ -59,20 +37,28 @@ export default function ImportImageModal({ isOpen, onClose, onApply }: ImportIma
 
   const [outputSize, setOutputSize] = useState<number>(128);
   const [fitMode, setFitMode] = useState<FitMode>("fit");
-  const [categoryId, setCategoryId] = useState<PaletteChoice>("all");
-  const [alphaThreshold, setAlphaThreshold] = useState<number>(128);
-  const [debouncedAlpha, setDebouncedAlpha] = useState<number>(128);
+
+  // Wall detection: Sobel gradient threshold (0-255). Lower = more walls detected.
+  const [wallThreshold, setWallThreshold] = useState<number>(30);
+  const [debouncedWall, setDebouncedWall] = useState<number>(30);
+
+  // Road detection: max saturation % (0-50). Higher = more colors count as roads.
+  const [roadSatMax, setRoadSatMax] = useState<number>(20);
+  const [debouncedRoadSat, setDebouncedRoadSat] = useState<number>(20);
 
   const [result, setResult] = useState<ConvertResult | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
-  const palette = useMemo(() => buildPalette(categoryId), [categoryId]);
-
-  // Debounce alpha threshold for smooth slider.
+  // Debounce sliders.
   useEffect(() => {
-    const t = setTimeout(() => setDebouncedAlpha(alphaThreshold), 150);
+    const t = setTimeout(() => setDebouncedWall(wallThreshold), 150);
     return () => clearTimeout(t);
-  }, [alphaThreshold]);
+  }, [wallThreshold]);
+
+  useEffect(() => {
+    const t = setTimeout(() => setDebouncedRoadSat(roadSatMax), 150);
+    return () => clearTimeout(t);
+  }, [roadSatMax]);
 
   // Reset state when modal closes.
   useEffect(() => {
@@ -101,11 +87,12 @@ export default function ImportImageModal({ isOpen, onClose, onApply }: ImportIma
     }
     try {
       const imageData = drawToGrid(img, outputSize, fitMode);
-      const res = convertImageDataToPlacements(imageData, {
+      const res = convertMapToPlacements(imageData, {
         outputSize,
-        fitMode,
-        alphaThreshold: debouncedAlpha,
-        palette,
+        wallThreshold: debouncedWall,
+        roadSatMax: debouncedRoadSat,
+        roadBriMin: 30,
+        roadBriMax: 85,
       });
       setResult(res);
       setError(null);
@@ -113,7 +100,7 @@ export default function ImportImageModal({ isOpen, onClose, onApply }: ImportIma
       setError(e instanceof Error ? e.message : "Conversion failed");
       setResult(null);
     }
-  }, [img, outputSize, fitMode, debouncedAlpha, palette]);
+  }, [img, outputSize, fitMode, debouncedWall, debouncedRoadSat]);
 
   // Paint the preview canvas whenever the result updates.
   useEffect(() => {
@@ -124,7 +111,7 @@ export default function ImportImageModal({ isOpen, onClose, onApply }: ImportIma
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
-    // Draw checkerboard background to show transparent pixels.
+    // Checkerboard background to show empty cells.
     const checker = 8;
     for (let yy = 0; yy < PREVIEW_CSS_SIZE; yy += checker) {
       for (let xx = 0; xx < PREVIEW_CSS_SIZE; xx += checker) {
@@ -175,9 +162,7 @@ export default function ImportImageModal({ isOpen, onClose, onApply }: ImportIma
 
   if (!isOpen) return null;
 
-  const paletteEmpty = palette.length === 0;
   const placementCount = result?.placements.length ?? 0;
-  const applyDisabled = !result || paletteEmpty;
 
   return (
     <div
@@ -188,17 +173,17 @@ export default function ImportImageModal({ isOpen, onClose, onApply }: ImportIma
         className="bg-surface rounded-2xl shadow-2xl p-6 max-w-3xl w-full mx-4 max-h-[90vh] overflow-y-auto"
         onClick={(e) => e.stopPropagation()}
       >
-        <h3 className="text-lg font-bold text-sky-deep mb-1">Import Image</h3>
+        <h3 className="text-lg font-bold text-sky-deep mb-1">Import Map</h3>
         <p className="text-sm text-text-secondary mb-4">
-          Upload a picture and convert it into a starting plan. You can edit and
-          share the result afterwards.
+          Upload a real-world map or satellite image. Building edges become walls;
+          gray roads become paths. Adjust the sliders to tune detection.
         </p>
 
         <div className="flex flex-col md:flex-row gap-6">
           {/* Left column: input & options */}
           <div className="flex-1 flex flex-col gap-3 min-w-0">
             <label className="flex flex-col gap-1">
-              <span className="text-xs font-semibold text-text-primary">Image file</span>
+              <span className="text-xs font-semibold text-text-primary">Map image</span>
               <input
                 type="file"
                 accept="image/png,image/jpeg,image/webp"
@@ -215,7 +200,7 @@ export default function ImportImageModal({ isOpen, onClose, onApply }: ImportIma
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
                   src={thumbUrl}
-                  alt="Source preview"
+                  alt="Source map"
                   className="max-h-48 max-w-full rounded-xl border border-gray-200 object-contain"
                 />
               </div>
@@ -260,37 +245,34 @@ export default function ImportImageModal({ isOpen, onClose, onApply }: ImportIma
             </div>
 
             <label className="flex flex-col gap-1">
-              <span className="text-xs font-semibold text-text-primary">Palette</span>
-              <select
-                value={categoryId}
-                onChange={(e) => setCategoryId(e.target.value as PaletteChoice)}
-                className="px-3 py-2 rounded-xl border border-gray-200 text-sm bg-cloud-soft text-text-primary"
-              >
-                {PALETTE_CHOICES.map((c) => (
-                  <option key={c.value} value={c.value}>
-                    {c.label}
-                  </option>
-                ))}
-              </select>
+              <span className="text-xs font-semibold text-text-primary">
+                Edge sensitivity — walls ({wallThreshold})
+              </span>
+              <input
+                type="range"
+                min={5}
+                max={120}
+                value={wallThreshold}
+                onChange={(e) => setWallThreshold(Number(e.target.value))}
+              />
               <span className="text-xs text-text-secondary">
-                {palette.length} color{palette.length !== 1 ? "s" : ""} available
-                {paletteEmpty && " — no 1×1 items in this category"}
+                Lower = more building edges detected as walls.
               </span>
             </label>
 
             <label className="flex flex-col gap-1">
               <span className="text-xs font-semibold text-text-primary">
-                Alpha threshold ({alphaThreshold})
+                Road sensitivity — max color ({roadSatMax}%)
               </span>
               <input
                 type="range"
                 min={0}
-                max={255}
-                value={alphaThreshold}
-                onChange={(e) => setAlphaThreshold(Number(e.target.value))}
+                max={50}
+                value={roadSatMax}
+                onChange={(e) => setRoadSatMax(Number(e.target.value))}
               />
               <span className="text-xs text-text-secondary">
-                Pixels below this alpha are skipped (leave empty).
+                Higher = more gray-ish pixels treated as roads.
               </span>
             </label>
           </div>
@@ -308,8 +290,20 @@ export default function ImportImageModal({ isOpen, onClose, onApply }: ImportIma
             <div className="text-xs text-text-secondary">
               {result
                 ? `${placementCount} item${placementCount !== 1 ? "s" : ""} · centered on ${GRID_SIZE}×${GRID_SIZE}`
-                : "Upload an image to preview"}
+                : "Upload a map to preview"}
             </div>
+            {result && (
+              <div className="text-xs text-text-secondary flex gap-3">
+                <span className="flex items-center gap-1">
+                  <span className="inline-block w-3 h-3 rounded-sm bg-[#696460]" />
+                  Walls
+                </span>
+                <span className="flex items-center gap-1">
+                  <span className="inline-block w-3 h-3 rounded-sm bg-[#c8c8c3]" />
+                  Roads
+                </span>
+              </div>
+            )}
             {error && <div className="text-xs text-red-500">{error}</div>}
           </div>
         </div>
@@ -318,7 +312,7 @@ export default function ImportImageModal({ isOpen, onClose, onApply }: ImportIma
           <Button variant="secondary" onClick={onClose}>
             Cancel
           </Button>
-          <Button variant="primary" onClick={handleApply} disabled={applyDisabled}>
+          <Button variant="primary" onClick={handleApply} disabled={!result}>
             Apply
           </Button>
         </div>
