@@ -8,6 +8,11 @@ interface ShareModalProps {
   onClose: () => void;
 }
 
+// Most browsers support URLs up to ~2 000 chars reliably; beyond 4 000 some
+// servers / link-shorteners may reject them.
+const WARN_LENGTH = 2000;
+const ERROR_LENGTH = 4000;
+
 export default function ShareModal({ url, onClose }: ShareModalProps) {
   const [copied, setCopied] = useState(false);
 
@@ -17,7 +22,7 @@ export default function ShareModal({ url, onClose }: ShareModalProps) {
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     } catch {
-      // Fallback
+      // Fallback for browsers that block clipboard API
       const input = document.createElement("input");
       input.value = url;
       document.body.appendChild(input);
@@ -29,24 +34,53 @@ export default function ShareModal({ url, onClose }: ShareModalProps) {
     }
   };
 
+  const len = url.length;
+  const isLong = len > WARN_LENGTH;
+  const isVeryLong = len > ERROR_LENGTH;
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm" onClick={onClose}>
-      <div className="bg-surface rounded-2xl shadow-2xl p-6 max-w-lg w-full mx-4" onClick={(e) => e.stopPropagation()}>
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm"
+      onClick={onClose}
+    >
+      <div
+        className="bg-surface rounded-2xl shadow-2xl p-6 max-w-lg w-full mx-4"
+        onClick={(e) => e.stopPropagation()}
+      >
         <h3 className="text-lg font-bold text-sky-deep mb-2">Share Your Island Plan</h3>
         <p className="text-sm text-text-secondary mb-4">
           Copy this link and share it with friends! They&apos;ll see your exact island layout.
         </p>
+
         <div className="flex gap-2">
           <input
             type="text"
             readOnly
             value={url}
-            className="flex-1 px-3 py-2 rounded-xl border border-gray-200 text-sm bg-cloud-soft text-text-primary"
+            className="flex-1 px-3 py-2 rounded-xl border border-gray-200 text-sm bg-cloud-soft text-text-primary min-w-0"
           />
           <Button onClick={handleCopy} variant={copied ? "secondary" : "primary"}>
             {copied ? "Copied!" : "Copy"}
           </Button>
         </div>
+
+        {/* URL length feedback */}
+        <div className="mt-2 flex items-center gap-2">
+          <span className={`text-xs font-medium ${isVeryLong ? "text-red-500" : isLong ? "text-orange-500" : "text-text-secondary"}`}>
+            {len.toLocaleString()} chars
+          </span>
+          {isVeryLong && (
+            <span className="text-xs text-red-500">
+              — very long; some browsers may truncate this link. Consider placing fewer items.
+            </span>
+          )}
+          {!isVeryLong && isLong && (
+            <span className="text-xs text-orange-500">
+              — moderately long; should work in most browsers.
+            </span>
+          )}
+        </div>
+
         <div className="mt-4 text-right">
           <Button variant="secondary" onClick={onClose}>
             Close

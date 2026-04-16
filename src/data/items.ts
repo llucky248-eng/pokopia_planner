@@ -1601,8 +1601,23 @@ export const CATALOG_ITEMS: CatalogItem[] = [
   ...ITEMS_FOSSILS,
 ];
 
+// O(1) id → item lookup
+const CATALOG_MAP = new Map<string, CatalogItem>(CATALOG_ITEMS.map((item) => [item.id, item]));
+// O(1) id → catalog index (used for compact v2 serialization)
+const CATALOG_INDEX_MAP = new Map<string, number>(CATALOG_ITEMS.map((item, i) => [item.id, i]));
+
 export function getItemById(id: string): CatalogItem | undefined {
-  return CATALOG_ITEMS.find((item) => item.id === id);
+  return CATALOG_MAP.get(id);
+}
+
+/** Returns the zero-based position of an item in the catalog, or -1 if not found. */
+export function getItemIndex(id: string): number {
+  return CATALOG_INDEX_MAP.get(id) ?? -1;
+}
+
+/** Returns the catalog item at a given index, or undefined if out of range. */
+export function getItemByIndex(index: number): CatalogItem | undefined {
+  return CATALOG_ITEMS[index];
 }
 
 export function getItemsByCategory(category: CatalogItem["category"]): CatalogItem[] {
