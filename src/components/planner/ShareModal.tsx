@@ -15,16 +15,19 @@ const ERROR_LENGTH = 4000;
 
 export default function ShareModal({ url, onClose }: ShareModalProps) {
   const [copied, setCopied] = useState(false);
+  const [displayUrl, setDisplayUrl] = useState(url);
+  const [isShortening, setIsShortening] = useState(false);
+  const [shortenError, setShortenError] = useState(false);
+  const isShortened = displayUrl !== url;
 
   const handleCopy = async () => {
     try {
-      await navigator.clipboard.writeText(url);
+      await navigator.clipboard.writeText(displayUrl);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     } catch {
-      // Fallback for browsers that block clipboard API
       const input = document.createElement("input");
-      input.value = url;
+      input.value = displayUrl;
       document.body.appendChild(input);
       input.select();
       document.execCommand("copy");
@@ -34,7 +37,27 @@ export default function ShareModal({ url, onClose }: ShareModalProps) {
     }
   };
 
-  const len = url.length;
+  const handleShorten = async () => {
+    setIsShortening(true);
+    setShortenError(false);
+    try {
+      const res = await fetch(
+        `https://is.gd/create.php?format=json&url=${encodeURIComponent(url)}`
+      );
+      const data = await res.json() as { shorturl?: string };
+      if (data.shorturl) {
+        setDisplayUrl(data.shorturl);
+      } else {
+        setShortenError(true);
+      }
+    } catch {
+      setShortenError(true);
+    } finally {
+      setIsShortening(false);
+    }
+  };
+
+  const len = displayUrl.length;
   const isLong = len > WARN_LENGTH;
   const isVeryLong = len > ERROR_LENGTH;
 
@@ -56,7 +79,7 @@ export default function ShareModal({ url, onClose }: ShareModalProps) {
           <input
             type="text"
             readOnly
-            value={url}
+            value={displayUrl}
             className="flex-1 px-3 py-2 rounded-xl border border-gray-200 text-sm bg-cloud-soft text-text-primary min-w-0"
           />
           <Button onClick={handleCopy} variant={copied ? "secondary" : "primary"}>
@@ -64,20 +87,32 @@ export default function ShareModal({ url, onClose }: ShareModalProps) {
           </Button>
         </div>
 
-        {/* URL length feedback */}
-        <div className="mt-2 flex items-center gap-2">
+        {/* URL length feedback + shorten button */}
+        <div className="mt-2 flex items-center gap-2 flex-wrap">
           <span className={`text-xs font-medium ${isVeryLong ? "text-red-500" : isLong ? "text-orange-500" : "text-text-secondary"}`}>
             {len.toLocaleString()} chars
           </span>
           {isVeryLong && (
             <span className="text-xs text-red-500">
-              — very long; some browsers may truncate this link. Consider placing fewer items.
+              — very long; some browsers may truncate this link.
             </span>
           )}
           {!isVeryLong && isLong && (
             <span className="text-xs text-orange-500">
               — moderately long; should work in most browsers.
             </span>
+          )}
+          {shortenError && (
+            <span className="text-xs text-red-500">— is.gd unavailable, use the full link.</span>
+          )}
+          {!isShortened && (
+            <button
+              onClick={handleShorten}
+              disabled={isShortening}
+              className="ml-auto text-xs text-sky-600 hover:text-sky-800 underline disabled:opacity-50 disabled:cursor-wait"
+            >
+              {isShortening ? "Shortening…" : "Get short link"}
+            </button>
           )}
         </div>
 
