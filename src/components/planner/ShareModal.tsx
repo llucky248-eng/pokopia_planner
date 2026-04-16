@@ -17,8 +17,9 @@ export default function ShareModal({ url, onClose }: ShareModalProps) {
   const [copied, setCopied] = useState(false);
   const [displayUrl, setDisplayUrl] = useState(url);
   const [isShortening, setIsShortening] = useState(false);
-  const [shortenError, setShortenError] = useState(false);
+  const [shortenError, setShortenError] = useState<string | null>(null);
   const isShortened = displayUrl !== url;
+  const isLocalUrl = /^https?:\/\/(localhost|127\.|0\.0\.0\.0|192\.168\.|10\.|172\.(1[6-9]|2\d|3[01])\.)/.test(url);
 
   const handleCopy = async () => {
     try {
@@ -38,20 +39,24 @@ export default function ShareModal({ url, onClose }: ShareModalProps) {
   };
 
   const handleShorten = async () => {
+    if (isLocalUrl) {
+      setShortenError("Short links only work on the live site, not localhost.");
+      return;
+    }
     setIsShortening(true);
-    setShortenError(false);
+    setShortenError(null);
     try {
       const res = await fetch(
         `https://is.gd/create.php?format=json&url=${encodeURIComponent(url)}`
       );
-      const data = await res.json() as { shorturl?: string };
+      const data = await res.json() as { shorturl?: string; errormessage?: string };
       if (data.shorturl) {
         setDisplayUrl(data.shorturl);
       } else {
-        setShortenError(true);
+        setShortenError(data.errormessage ?? "is.gd unavailable — use the full link.");
       }
     } catch {
-      setShortenError(true);
+      setShortenError("Could not reach is.gd — use the full link.");
     } finally {
       setIsShortening(false);
     }
@@ -103,7 +108,7 @@ export default function ShareModal({ url, onClose }: ShareModalProps) {
             </span>
           )}
           {shortenError && (
-            <span className="text-xs text-red-500">— is.gd unavailable, use the full link.</span>
+            <span className="text-xs text-red-500">— {shortenError}</span>
           )}
           {!isShortened && (
             <button
