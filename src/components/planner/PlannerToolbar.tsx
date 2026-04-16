@@ -39,7 +39,7 @@ export default function PlannerToolbar({
           ? `📐 ${measureDimensions.w} × ${measureDimensions.h} cells`
           : "📐 Drag on the grid to measure an area"
         : selectedItemName
-          ? `Placing: ${selectedItemName}`
+          ? `Click or drag to paint • ${selectedItemName}`
           : hoveredItemName
             ? `Hovering: ${hoveredItemName}`
             : "Select an item to place, or drag to pan";

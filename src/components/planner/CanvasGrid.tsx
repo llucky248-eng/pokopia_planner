@@ -15,6 +15,9 @@ interface CanvasGridProps {
   onHoverItem?: (name: string | null) => void;
   /** Called whenever the committed measurement changes (null = cleared). */
   onMeasure?: (dims: { w: number; h: number } | null) => void;
+  onBeginPaint?: () => void;
+  onPaintCell?: (itemId: string, row: number, col: number) => void;
+  onEndPaint?: () => void;
 }
 
 export default function CanvasGrid({
@@ -25,6 +28,9 @@ export default function CanvasGrid({
   onRemove,
   onHoverItem,
   onMeasure,
+  onBeginPaint,
+  onPaintCell,
+  onEndPaint,
 }: CanvasGridProps) {
   const {
     canvasRef,
@@ -43,7 +49,16 @@ export default function CanvasGrid({
     handleMinimapMouseDown,
     handleMinimapMouseMove,
     handleMinimapMouseUp,
-  } = useCanvasRenderer(grid, selectedItemId, toolMode, onPlace, onRemove);
+  } = useCanvasRenderer(
+    grid,
+    selectedItemId,
+    toolMode,
+    onPlace,
+    onRemove,
+    onBeginPaint ?? (() => {}),
+    onPaintCell ?? (() => {}),
+    onEndPaint ?? (() => {}),
+  );
 
   useEffect(() => {
     onHoverItem?.(hoveredItemName);
@@ -109,7 +124,7 @@ export default function CanvasGrid({
             <p className="font-semibold text-text-primary mb-1">How to use</p>
             <ul className="list-disc list-inside space-y-0.5">
               <li>Select an item from the palette</li>
-              <li>Click a cell to place it</li>
+              <li>Click or drag to paint items</li>
               <li>Drag anywhere to pan the map</li>
               <li>Scroll / pinch to zoom</li>
               <li>Right-click to remove items</li>

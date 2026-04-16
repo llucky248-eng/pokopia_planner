@@ -28,6 +28,9 @@ export function useCanvasRenderer(
   toolMode: "place" | "erase" | "measure",
   onPlace: (itemId: string, row: number, col: number) => void,
   onRemove: (instanceId: string) => void,
+  onBeginPaint: () => void,
+  onPaintCell: (itemId: string, row: number, col: number) => void,
+  onEndPaint: () => void,
 ) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const minimapRef = useRef<HTMLCanvasElement>(null);
@@ -95,6 +98,16 @@ export function useCanvasRenderer(
   onPlaceRef.current = onPlace;
   const onRemoveRef = useRef(onRemove);
   onRemoveRef.current = onRemove;
+  const onBeginPaintRef = useRef(onBeginPaint);
+  onBeginPaintRef.current = onBeginPaint;
+  const onPaintCellRef = useRef(onPaintCell);
+  onPaintCellRef.current = onPaintCell;
+  const onEndPaintRef = useRef(onEndPaint);
+  onEndPaintRef.current = onEndPaint;
+
+  // Paint stroke tracking
+  const isPaintingRef = useRef(false);
+  const paintedCellsRef = useRef(new Set<string>());
 
   const markDirty = useCallback(() => {
     dirtyRef.current = true;
@@ -507,6 +520,22 @@ export function useCanvasRenderer(
     if (!canvas) return;
 
     const onWindowMouseMove = (e: MouseEvent) => {
+      // Paint stroke: continuously paint cells as the cursor moves.
+      if (isPaintingRef.current) {
+        const rect = canvas.getBoundingClientRect();
+        const cell = screenToGrid(e.clientX - rect.left, e.clientY - rect.top);
+        if (cell) {
+          const key = `${cell.row},${cell.col}`;
+          if (!paintedCellsRef.current.has(key)) {
+            paintedCellsRef.current.add(key);
+            onPaintCellRef.current(selectedItemIdRef.current!, cell.row, cell.col);
+          }
+          hoveredCellRef.current = cell;
+          markDirty();
+        }
+        return;
+      }
+
       const drag = dragStartRef.current;
       if (!drag) return;
       const rect = canvas.getBoundingClientRect();
@@ -544,6 +573,15 @@ export function useCanvasRenderer(
     };
 
     const onWindowMouseUp = (e: MouseEvent) => {
+      // Finalize paint stroke.
+      if (isPaintingRef.current) {
+        isPaintingRef.current = false;
+        paintedCellsRef.current.clear();
+        onEndPaintRef.current();
+        restoreIdleCursor();
+        return;
+      }
+
       const drag = dragStartRef.current;
       if (!drag) return;
 
@@ -622,6 +660,19 @@ export function useCanvasRenderer(
         if (placement) onRemoveRef.current(placement.instanceId);
       }
       return;
+    }
+
+    // Paint mode: item selected + left click → begin stroke (owns this drag).
+    if (e.button === 0 && toolModeRef.current === "place" && selectedItemIdRef.current) {
+      isPaintingRef.current = true;
+      paintedCellsRef.current = new Set();
+      onBeginPaintRef.current();
+      if (cell) {
+        const key = `${cell.row},${cell.col}`;
+        paintedCellsRef.current.add(key);
+        onPaintCellRef.current(selectedItemIdRef.current, cell.row, cell.col);
+      }
+      return; // skip dragStartRef — paint mode owns this drag
     }
 
     // Left click or middle click: record potential drag start. The window-level

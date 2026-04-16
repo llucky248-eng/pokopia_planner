@@ -55,6 +55,7 @@ export function useGridState(initial?: GridState) {
   const [savedGrid, setSavedGrid] = useLocalStorage<GridState>(LOCAL_STORAGE_GRID_KEY, EMPTY_GRID);
   const [grid, setGrid] = useState<GridState>(initial ?? savedGrid);
   const undoStack = useRef<GridState[]>([]);
+  const strokeSnapshotRef = useRef<GridState | null>(null);
 
   const pushUndo = useCallback((state: GridState) => {
     undoStack.current = [...undoStack.current.slice(-MAX_UNDO_STACK + 1), state];
@@ -127,6 +128,34 @@ export function useGridState(initial?: GridState) {
     }
   }, [update]);
 
+  /** Capture pre-stroke snapshot before the first painted cell. */
+  const beginPaintStroke = useCallback(() => {
+    setGrid(prev => { strokeSnapshotRef.current = prev; return prev; });
+  }, []);
+
+  /** Place one cell during a paint stroke without pushing to undo. */
+  const paintCellInStroke = useCallback((itemId: string, row: number, col: number) => {
+    setGrid((prev) => {
+      const catItem = getItemById(itemId);
+      if (!catItem) return prev;
+      const sw = itemWidth(catItem);
+      const sh = itemHeight(catItem);
+      if (isFootprintOccupied(prev.placements, row, col, sw, sh)) return prev;
+      const newGrid = { ...prev, placements: [...prev.placements, { instanceId: generateId(), itemId, row, col }] };
+      setSavedGrid(newGrid);
+      return newGrid;
+    });
+  }, [setSavedGrid]);
+
+  /** Push the pre-stroke snapshot onto the undo stack (call on mouseup). */
+  const endPaintStroke = useCallback(() => {
+    const snap = strokeSnapshotRef.current;
+    if (snap) {
+      undoStack.current = [...undoStack.current.slice(-MAX_UNDO_STACK + 1), snap];
+      strokeSnapshotRef.current = null;
+    }
+  }, []);
+
   const loadGrid = useCallback((newGrid: GridState) => {
     setGrid((prev) => {
       pushUndo(prev);
@@ -135,5 +164,5 @@ export function useGridState(initial?: GridState) {
     });
   }, [pushUndo, setSavedGrid]);
 
-  return { grid, placeItem, moveItem, removeItem, clearAll, undo, loadGrid };
+  return { grid, placeItem, moveItem, removeItem, clearAll, undo, loadGrid, beginPaintStroke, paintCellInStroke, endPaintStroke };
 }

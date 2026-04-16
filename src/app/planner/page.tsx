@@ -28,7 +28,8 @@ export default function PlannerPage() {
 
 function PlannerContent() {
   const searchParams = useSearchParams();
-  const { grid, placeItem, removeItem, clearAll, undo, loadGrid } = useGridState();
+  const { grid, placeItem, removeItem, clearAll, undo, loadGrid,
+          beginPaintStroke, paintCellInStroke, endPaintStroke } = useGridState();
   const { generateLink, loadFromUrl } = useShareableLink();
   const [shareUrl, setShareUrl] = useState<string | null>(null);
   const [isImportOpen, setIsImportOpen] = useState(false);
@@ -136,6 +137,9 @@ function PlannerContent() {
             onRemove={removeItem}
             onHoverItem={handleHoverItem}
             onMeasure={handleMeasure}
+            onBeginPaint={beginPaintStroke}
+            onPaintCell={paintCellInStroke}
+            onEndPaint={endPaintStroke}
           />
         </div>
       </div>
