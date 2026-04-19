@@ -31,6 +31,9 @@ export function useCanvasRenderer(
   onBeginPaint: () => void,
   onPaintCell: (itemId: string, row: number, col: number) => void,
   onEndPaint: () => void,
+  onBeginErase: () => void,
+  onEraseCell: (instanceId: string) => void,
+  onEndErase: () => void,
 ) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const minimapRef = useRef<HTMLCanvasElement>(null);
@@ -104,10 +107,20 @@ export function useCanvasRenderer(
   onPaintCellRef.current = onPaintCell;
   const onEndPaintRef = useRef(onEndPaint);
   onEndPaintRef.current = onEndPaint;
+  const onBeginEraseRef = useRef(onBeginErase);
+  onBeginEraseRef.current = onBeginErase;
+  const onEraseCellRef = useRef(onEraseCell);
+  onEraseCellRef.current = onEraseCell;
+  const onEndEraseRef = useRef(onEndErase);
+  onEndEraseRef.current = onEndErase;
 
   // Paint stroke tracking
   const isPaintingRef = useRef(false);
   const paintedCellsRef = useRef(new Set<string>());
+
+  // Erase stroke tracking
+  const isErasingRef = useRef(false);
+  const erasedInstancesRef = useRef(new Set<string>());
 
   const markDirty = useCallback(() => {
     dirtyRef.current = true;
@@ -536,6 +549,22 @@ export function useCanvasRenderer(
         return;
       }
 
+      // Erase stroke: continuously erase items as the cursor moves.
+      if (isErasingRef.current) {
+        const rect = canvas.getBoundingClientRect();
+        const cell = screenToGrid(e.clientX - rect.left, e.clientY - rect.top);
+        if (cell) {
+          const placement = spatialIndexRef.current.get(`${cell.row},${cell.col}`);
+          if (placement && !erasedInstancesRef.current.has(placement.instanceId)) {
+            erasedInstancesRef.current.add(placement.instanceId);
+            onEraseCellRef.current(placement.instanceId);
+          }
+          hoveredCellRef.current = cell;
+          markDirty();
+        }
+        return;
+      }
+
       const drag = dragStartRef.current;
       if (!drag) return;
       const rect = canvas.getBoundingClientRect();
@@ -582,6 +611,15 @@ export function useCanvasRenderer(
         return;
       }
 
+      // Finalize erase stroke.
+      if (isErasingRef.current) {
+        isErasingRef.current = false;
+        erasedInstancesRef.current.clear();
+        onEndEraseRef.current();
+        restoreIdleCursor();
+        return;
+      }
+
       const drag = dragStartRef.current;
       if (!drag) return;
 
@@ -622,12 +660,8 @@ export function useCanvasRenderer(
         ) {
           const cell = screenToGrid(mouseX, mouseY);
           if (cell) {
-            const mode = toolModeRef.current;
             const sel = selectedItemIdRef.current;
-            if (mode === "erase") {
-              const placement = spatialIndexRef.current.get(`${cell.row},${cell.col}`);
-              if (placement) onRemoveRef.current(placement.instanceId);
-            } else if (sel) {
+            if (sel) {
               onPlaceRef.current(sel, cell.row, cell.col);
             }
           }
@@ -673,6 +707,21 @@ export function useCanvasRenderer(
         onPaintCellRef.current(selectedItemIdRef.current, cell.row, cell.col);
       }
       return; // skip dragStartRef — paint mode owns this drag
+    }
+
+    // Erase mode: left click → begin erase stroke (owns this drag).
+    if (e.button === 0 && toolModeRef.current === "erase") {
+      isErasingRef.current = true;
+      erasedInstancesRef.current = new Set();
+      onBeginEraseRef.current();
+      if (cell) {
+        const placement = spatialIndexRef.current.get(`${cell.row},${cell.col}`);
+        if (placement && !erasedInstancesRef.current.has(placement.instanceId)) {
+          erasedInstancesRef.current.add(placement.instanceId);
+          onEraseCellRef.current(placement.instanceId);
+        }
+      }
+      return;
     }
 
     // Left click or middle click: record potential drag start. The window-level

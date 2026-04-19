@@ -56,6 +56,7 @@ export function useGridState(initial?: GridState) {
   const [grid, setGrid] = useState<GridState>(initial ?? savedGrid);
   const undoStack = useRef<GridState[]>([]);
   const strokeSnapshotRef = useRef<GridState | null>(null);
+  const eraseSnapshotRef = useRef<GridState | null>(null);
 
   const pushUndo = useCallback((state: GridState) => {
     undoStack.current = [...undoStack.current.slice(-MAX_UNDO_STACK + 1), state];
@@ -156,6 +157,29 @@ export function useGridState(initial?: GridState) {
     }
   }, []);
 
+  /** Capture pre-erase snapshot before the first erased cell. */
+  const beginEraseStroke = useCallback(() => {
+    setGrid(prev => { eraseSnapshotRef.current = prev; return prev; });
+  }, []);
+
+  /** Remove one item during an erase stroke without pushing to undo. */
+  const eraseCellInStroke = useCallback((instanceId: string) => {
+    setGrid((prev) => {
+      const newGrid = { ...prev, placements: prev.placements.filter(p => p.instanceId !== instanceId) };
+      setSavedGrid(newGrid);
+      return newGrid;
+    });
+  }, [setSavedGrid]);
+
+  /** Push the pre-erase snapshot onto the undo stack (call on mouseup). */
+  const endEraseStroke = useCallback(() => {
+    const snap = eraseSnapshotRef.current;
+    if (snap) {
+      undoStack.current = [...undoStack.current.slice(-MAX_UNDO_STACK + 1), snap];
+      eraseSnapshotRef.current = null;
+    }
+  }, []);
+
   const loadGrid = useCallback((newGrid: GridState) => {
     setGrid((prev) => {
       pushUndo(prev);
@@ -164,5 +188,5 @@ export function useGridState(initial?: GridState) {
     });
   }, [pushUndo, setSavedGrid]);
 
-  return { grid, placeItem, moveItem, removeItem, clearAll, undo, loadGrid, beginPaintStroke, paintCellInStroke, endPaintStroke };
+  return { grid, placeItem, moveItem, removeItem, clearAll, undo, loadGrid, beginPaintStroke, paintCellInStroke, endPaintStroke, beginEraseStroke, eraseCellInStroke, endEraseStroke };
 }

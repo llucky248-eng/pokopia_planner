@@ -18,6 +18,9 @@ interface CanvasGridProps {
   onBeginPaint?: () => void;
   onPaintCell?: (itemId: string, row: number, col: number) => void;
   onEndPaint?: () => void;
+  onBeginErase?: () => void;
+  onEraseCell?: (instanceId: string) => void;
+  onEndErase?: () => void;
 }
 
 export default function CanvasGrid({
@@ -31,6 +34,9 @@ export default function CanvasGrid({
   onBeginPaint,
   onPaintCell,
   onEndPaint,
+  onBeginErase,
+  onEraseCell,
+  onEndErase,
 }: CanvasGridProps) {
   const {
     canvasRef,
@@ -58,6 +64,9 @@ export default function CanvasGrid({
     onBeginPaint ?? (() => {}),
     onPaintCell ?? (() => {}),
     onEndPaint ?? (() => {}),
+    onBeginErase ?? (() => {}),
+    onEraseCell ?? (() => {}),
+    onEndErase ?? (() => {}),
   );
 
   useEffect(() => {
