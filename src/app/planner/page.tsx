@@ -29,7 +29,8 @@ export default function PlannerPage() {
 function PlannerContent() {
   const searchParams = useSearchParams();
   const { grid, placeItem, removeItem, clearAll, undo, loadGrid,
-          beginPaintStroke, paintCellInStroke, endPaintStroke } = useGridState();
+          beginPaintStroke, paintCellInStroke, endPaintStroke,
+          beginEraseStroke, eraseCellInStroke, endEraseStroke } = useGridState();
   const { generateLink, loadFromUrl } = useShareableLink();
   const [shareUrl, setShareUrl] = useState<string | null>(null);
   const [isImportOpen, setIsImportOpen] = useState(false);
@@ -140,6 +141,9 @@ function PlannerContent() {
             onBeginPaint={beginPaintStroke}
             onPaintCell={paintCellInStroke}
             onEndPaint={endPaintStroke}
+            onBeginErase={beginEraseStroke}
+            onEraseCell={eraseCellInStroke}
+            onEndErase={endEraseStroke}
           />
         </div>
       </div>
