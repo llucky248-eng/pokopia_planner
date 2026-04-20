@@ -47,7 +47,7 @@ export default function ShareModal({ url, onClose }: ShareModalProps) {
     setShortenError(null);
     try {
       const res = await fetch(
-        `https://is.gd/create.php?format=json&url=${encodeURIComponent(url)}`
+        `/api/shorten?url=${encodeURIComponent(url)}`
       );
       const data = await res.json() as { shorturl?: string; errormessage?: string };
       if (data.shorturl) {
