@@ -1,4 +1,5 @@
 import Link from "next/link";
+import pkg from "../../package.json";
 
 const FEATURES = [
   { icon: "🗺️", label: "368 × 368 grid" },
@@ -14,7 +15,7 @@ export default function HomePage() {
       {/* Hero */}
       <div className="mb-10">
         <span className="inline-block text-xs font-semibold tracking-widest uppercase text-sky-deep/70 bg-sky-light/60 px-3 py-1 rounded-full mb-5">
-          v0.4.5
+          v{pkg.version}
         </span>
         <h1 className="text-5xl font-extrabold text-sky-deep mb-5 animate-float">
           ☁️ Pokopia Planner
