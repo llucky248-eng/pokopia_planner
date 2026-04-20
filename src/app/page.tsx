@@ -1,13 +1,6 @@
 import Link from "next/link";
 import pkg from "../../package.json";
-
-const FEATURES = [
-  { icon: "🗺️", label: "368 × 368 grid" },
-  { icon: "📥", label: "Import real maps" },
-  { icon: "📐", label: "Measure tool" },
-  { icon: "🔗", label: "Shareable links" },
-  { icon: "↩️", label: "Undo history" },
-];
+import { FEATURES } from "@/data/features";
 
 export default function HomePage() {
   return (
