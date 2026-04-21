@@ -42,10 +42,9 @@ function PlannerContent() {
 
   useEffect(() => {
     if (loaded) return;
-    loadFromUrl(searchParams).then((sharedGrid) => {
-      if (sharedGrid) loadGrid(sharedGrid);
-      setLoaded(true);
-    });
+    const sharedGrid = loadFromUrl(searchParams);
+    if (sharedGrid) loadGrid(sharedGrid);
+    setLoaded(true);
   }, [searchParams, loadFromUrl, loadGrid, loaded]);
 
   const handleSelectItem = (itemId: string) => {
