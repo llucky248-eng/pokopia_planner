@@ -47,16 +47,16 @@ export default function ShareModal({ url, onClose }: ShareModalProps) {
     setShortenError(null);
     try {
       const res = await fetch(
-        `https://is.gd/create.php?format=json&url=${encodeURIComponent(url)}`
+        `https://api.shrtco.de/v2/shorten?url=${encodeURIComponent(url)}`
       );
-      const data = await res.json() as { shorturl?: string; errormessage?: string };
-      if (data.shorturl) {
-        setDisplayUrl(data.shorturl);
+      const data = await res.json() as { ok: boolean; result?: { full_short_link: string }; error?: string };
+      if (data.ok && data.result?.full_short_link) {
+        setDisplayUrl(data.result.full_short_link);
       } else {
-        setShortenError(data.errormessage ?? "is.gd unavailable — use the full link.");
+        setShortenError(data.error ?? "Shortener unavailable — use the full link.");
       }
     } catch {
-      setShortenError("Could not reach is.gd — use the full link.");
+      setShortenError("Could not reach shortener — use the full link.");
     } finally {
       setIsShortening(false);
     }
