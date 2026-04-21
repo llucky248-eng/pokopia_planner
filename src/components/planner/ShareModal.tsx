@@ -46,12 +46,14 @@ export default function ShareModal({ url, onClose }: ShareModalProps) {
     setIsShortening(true);
     setShortenError(null);
     try {
-      const res = await fetch(
-        `https://api.shrtco.de/v2/shorten?url=${encodeURIComponent(url)}`
-      );
-      const data = await res.json() as { ok: boolean; result?: { full_short_link: string }; error?: string };
-      if (data.ok && data.result?.full_short_link) {
-        setDisplayUrl(data.result.full_short_link);
+      const res = await fetch("https://cleanuri.com/api/v1/shorten", {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body: `url=${encodeURIComponent(url)}`,
+      });
+      const data = await res.json() as { result_url?: string; error?: string };
+      if (data.result_url) {
+        setDisplayUrl(data.result_url);
       } else {
         setShortenError(data.error ?? "Shortener unavailable — use the full link.");
       }
