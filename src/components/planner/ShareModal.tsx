@@ -1,31 +1,56 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Button from "@/components/ui/Button";
+import { SHARE_PARAM, BLOB_PARAM, JSONBLOB_API } from "@/lib/constants";
 
 interface ShareModalProps {
   url: string;
   onClose: () => void;
 }
 
-// Most browsers support URLs up to ~2 000 chars reliably; beyond 4 000 some
-// servers / link-shorteners may reject them.
-const WARN_LENGTH = 2000;
-const ERROR_LENGTH = 4000;
-
 export default function ShareModal({ url, onClose }: ShareModalProps) {
-  const [copied, setCopied] = useState(false);
+  const [status, setStatus] = useState<"creating" | "ready" | "error">("creating");
   const [displayUrl, setDisplayUrl] = useState(url);
-  const [isShortening, setIsShortening] = useState(false);
-  const [shortenError, setShortenError] = useState<string | null>(null);
-  const isShortened = displayUrl !== url;
-  const isLocalUrl = /^https?:\/\/(localhost|127\.|0\.0\.0\.0|192\.168\.|10\.|172\.(1[6-9]|2\d|3[01])\.)/.test(url);
+  const [copied, setCopied] = useState(false);
+  const [qrDataUrl, setQrDataUrl] = useState<string | null>(null);
+
+  // Create JSONBlob on mount to get a short share URL.
+  useEffect(() => {
+    const compressed = new URL(url).searchParams.get(SHARE_PARAM);
+    if (!compressed) { setStatus("error"); return; }
+
+    fetch(JSONBLOB_API, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "Accept": "application/json" },
+      body: JSON.stringify({ plan: compressed }),
+    })
+      .then((res) => {
+        if (!res.ok) throw new Error();
+        const location = res.headers.get("Location");
+        const blobId = location?.split("/").pop();
+        if (!blobId) throw new Error();
+        const short = new URL(url);
+        short.searchParams.delete(SHARE_PARAM);
+        short.searchParams.set(BLOB_PARAM, blobId);
+        setDisplayUrl(short.toString());
+        setStatus("ready");
+      })
+      .catch(() => setStatus("error"));
+  }, [url]);
+
+  // Generate QR code whenever the display URL changes.
+  useEffect(() => {
+    import("qrcode").then((QRCode) =>
+      QRCode.toDataURL(displayUrl, { width: 200, margin: 2 })
+        .then(setQrDataUrl)
+        .catch(() => {})
+    );
+  }, [displayUrl]);
 
   const handleCopy = async () => {
     try {
       await navigator.clipboard.writeText(displayUrl);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
     } catch {
       const input = document.createElement("input");
       input.value = displayUrl;
@@ -33,40 +58,24 @@ export default function ShareModal({ url, onClose }: ShareModalProps) {
       input.select();
       document.execCommand("copy");
       document.body.removeChild(input);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
     }
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
   };
 
-  const handleShorten = async () => {
-    if (isLocalUrl) {
-      setShortenError("Short links only work on the live site, not localhost.");
-      return;
-    }
-    setIsShortening(true);
-    setShortenError(null);
-    try {
-      const res = await fetch("https://cleanuri.com/api/v1/shorten", {
-        method: "POST",
-        headers: { "Content-Type": "application/x-www-form-urlencoded" },
-        body: `url=${encodeURIComponent(url)}`,
-      });
-      const data = await res.json() as { result_url?: string; error?: string };
-      if (data.result_url) {
-        setDisplayUrl(data.result_url);
-      } else {
-        setShortenError(data.error ?? "Shortener unavailable — use the full link.");
-      }
-    } catch {
-      setShortenError("Could not reach shortener — use the full link.");
-    } finally {
-      setIsShortening(false);
-    }
-  };
+  const statusMessage =
+    status === "creating"
+      ? "Creating short link…"
+      : status === "ready"
+        ? "Short link ready"
+        : "Service unavailable — using full link";
 
-  const len = displayUrl.length;
-  const isLong = len > WARN_LENGTH;
-  const isVeryLong = len > ERROR_LENGTH;
+  const statusColor =
+    status === "creating"
+      ? "text-text-secondary"
+      : status === "ready"
+        ? "text-emerald-600"
+        : "text-orange-500";
 
   return (
     <div
@@ -74,15 +83,18 @@ export default function ShareModal({ url, onClose }: ShareModalProps) {
       onClick={onClose}
     >
       <div
-        className="bg-surface rounded-2xl shadow-2xl p-6 max-w-lg w-full mx-4"
+        className="bg-surface rounded-2xl shadow-2xl p-6 max-w-sm w-full mx-4"
         onClick={(e) => e.stopPropagation()}
       >
-        <h3 className="text-lg font-bold text-sky-deep mb-2">Share Your Island Plan</h3>
-        <p className="text-sm text-text-secondary mb-4">
-          Copy this link and share it with friends! They&apos;ll see your exact island layout.
+        <h3 className="text-lg font-bold text-sky-deep mb-1">Share Your Island Plan</h3>
+        <p className={`text-xs font-medium mb-4 ${statusColor}`}>
+          {status === "creating" && (
+            <span className="inline-block w-3 h-3 border-2 border-current border-t-transparent rounded-full animate-spin mr-1.5 align-middle" />
+          )}
+          {statusMessage}
         </p>
 
-        <div className="flex gap-2">
+        <div className="flex gap-2 mb-4">
           <input
             type="text"
             readOnly
@@ -94,36 +106,19 @@ export default function ShareModal({ url, onClose }: ShareModalProps) {
           </Button>
         </div>
 
-        {/* URL length feedback + shorten button */}
-        <div className="mt-2 flex items-center gap-2 flex-wrap">
-          <span className={`text-xs font-medium ${isVeryLong ? "text-red-500" : isLong ? "text-orange-500" : "text-text-secondary"}`}>
-            {len.toLocaleString()} chars
-          </span>
-          {isVeryLong && (
-            <span className="text-xs text-red-500">
-              — very long; some browsers may truncate this link.
-            </span>
-          )}
-          {!isVeryLong && isLong && (
-            <span className="text-xs text-orange-500">
-              — moderately long; should work in most browsers.
-            </span>
-          )}
-          {shortenError && (
-            <span className="text-xs text-red-500">— {shortenError}</span>
-          )}
-          {!isShortened && (
-            <button
-              onClick={handleShorten}
-              disabled={isShortening}
-              className="ml-auto text-xs text-sky-600 hover:text-sky-800 underline disabled:opacity-50 disabled:cursor-wait"
-            >
-              {isShortening ? "Shortening…" : "Get short link"}
-            </button>
-          )}
-        </div>
+        {qrDataUrl && (
+          <div className="flex justify-center mb-4">
+            <img
+              src={qrDataUrl}
+              alt="QR code for share link"
+              width={200}
+              height={200}
+              className="rounded-xl border border-gray-200"
+            />
+          </div>
+        )}
 
-        <div className="mt-4 text-right">
+        <div className="text-right">
           <Button variant="secondary" onClick={onClose}>
             Close
           </Button>
