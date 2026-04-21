@@ -3,8 +3,6 @@ export const MAX_UNDO_STACK = 20;
 export const LOCAL_STORAGE_GRID_KEY = "pokopia-grid";
 export const LOCAL_STORAGE_CHECKLIST_KEY = "pokopia-checklist";
 export const SHARE_PARAM = "plan";
-export const BLOB_PARAM = "blob";
-export const JSONBLOB_API = "https://jsonblob.com/api/jsonBlob";
 
 // Canvas rendering constants
 export const BASE_CELL_SIZE = 4; // world units per cell
