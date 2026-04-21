@@ -9,3 +9,5 @@
   required checks, squash-merge it directly instead of waiting.
 - GitHub Pages deploys from `main` via `.github/workflows/deploy.yml`, so merging
   is what actually ships to the live site — don't stop at "PR opened".
+- Always bump the patch version in `package.json` as part of every feature/fix
+  PR — include it in the same commit rather than as a separate PR.
