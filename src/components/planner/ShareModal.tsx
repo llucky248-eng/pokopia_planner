@@ -13,11 +13,12 @@ export default function ShareModal({ url, onClose }: ShareModalProps) {
   const [qrDataUrl, setQrDataUrl] = useState<string | null>(null);
 
   useEffect(() => {
-    import("qrcode").then((QRCode) =>
+    import("qrcode").then((mod) => {
+      const QRCode = (mod.default ?? mod) as { toDataURL: (text: string, opts: object) => Promise<string> };
       QRCode.toDataURL(url, { width: 200, margin: 2 })
         .then(setQrDataUrl)
-        .catch(() => {})
-    );
+        .catch(() => {});
+    });
   }, [url]);
 
   const handleCopy = async () => {
