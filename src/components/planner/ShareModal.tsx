@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
+import QRCode from "react-qr-code";
 import Button from "@/components/ui/Button";
 
 interface ShareModalProps {
@@ -10,16 +11,6 @@ interface ShareModalProps {
 
 export default function ShareModal({ url, onClose }: ShareModalProps) {
   const [copied, setCopied] = useState(false);
-  const [qrDataUrl, setQrDataUrl] = useState<string | null>(null);
-
-  useEffect(() => {
-    import("qrcode").then((mod) => {
-      const QRCode = (mod.default ?? mod) as { toDataURL: (text: string, opts: object) => Promise<string> };
-      QRCode.toDataURL(url, { width: 200, margin: 2 })
-        .then(setQrDataUrl)
-        .catch(() => {});
-    });
-  }, [url]);
 
   const handleCopy = async () => {
     try {
@@ -62,17 +53,9 @@ export default function ShareModal({ url, onClose }: ShareModalProps) {
           </Button>
         </div>
 
-        {qrDataUrl && (
-          <div className="flex justify-center mb-4">
-            <img
-              src={qrDataUrl}
-              alt="QR code for share link"
-              width={200}
-              height={200}
-              className="rounded-xl border border-gray-200"
-            />
-          </div>
-        )}
+        <div className="flex justify-center mb-4 p-3 bg-white rounded-xl border border-gray-200">
+          <QRCode value={url} size={200} />
+        </div>
 
         <div className="text-right">
           <Button variant="secondary" onClick={onClose}>
