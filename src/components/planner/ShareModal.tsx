@@ -28,13 +28,19 @@ export default function ShareModal({ url, onClose }: ShareModalProps) {
   };
 
   useEffect(() => {
+    console.log("[ShareModal] url length:", url.length, "url:", url);
     const canvas = canvasRef.current;
-    if (!canvas) return;
+    console.log("[ShareModal] canvas ref:", canvas);
+    if (!canvas) { console.error("[ShareModal] canvas ref is null"); return; }
     import("qrcode").then((mod) => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const QRCode = (mod as any).default ?? mod;
-      QRCode.toCanvas(canvas, url, { width: 200, margin: 2 });
-    });
+      console.log("[ShareModal] QRCode:", QRCode, "toCanvas:", typeof QRCode?.toCanvas);
+      QRCode.toCanvas(canvas, url, { width: 200, margin: 2 }, (err: unknown) => {
+        if (err) console.error("[ShareModal] toCanvas error:", err);
+        else console.log("[ShareModal] toCanvas success");
+      });
+    }).catch((err) => console.error("[ShareModal] import error:", err));
   }, [url]);
 
   return (
