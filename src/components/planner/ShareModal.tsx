@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import Button from "@/components/ui/Button";
 
 interface ShareModalProps {
@@ -10,6 +10,7 @@ interface ShareModalProps {
 
 export default function ShareModal({ url, onClose }: ShareModalProps) {
   const [copied, setCopied] = useState(false);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
 
   const handleCopy = async () => {
     try {
@@ -26,7 +27,15 @@ export default function ShareModal({ url, onClose }: ShareModalProps) {
     setTimeout(() => setCopied(false), 2000);
   };
 
-  const qrSrc = `https://api.qrserver.com/v1/create-qr-code/?data=${encodeURIComponent(url)}&size=200x200&qzone=2`;
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    import("qrcode").then((mod) => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const QRCode = (mod as any).default ?? mod;
+      QRCode.toCanvas(canvas, url, { width: 200, margin: 2 });
+    });
+  }, [url]);
 
   return (
     <div
@@ -55,14 +64,7 @@ export default function ShareModal({ url, onClose }: ShareModalProps) {
         </div>
 
         <div className="flex justify-center mb-4 p-3 bg-white rounded-xl border border-gray-200">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src={qrSrc}
-            alt="QR code for share link"
-            width={200}
-            height={200}
-            className="rounded"
-          />
+          <canvas ref={canvasRef} width={200} height={200} className="rounded" />
         </div>
 
         <div className="text-right">
