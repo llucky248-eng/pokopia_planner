@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import QRCode from "react-qr-code";
 import Button from "@/components/ui/Button";
 
 interface ShareModalProps {
@@ -26,6 +25,8 @@ export default function ShareModal({ url, onClose }: ShareModalProps) {
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
+
+  const qrSrc = `https://api.qrserver.com/v1/create-qr-code/?data=${encodeURIComponent(url)}&size=200x200&qzone=2`;
 
   return (
     <div
@@ -54,7 +55,14 @@ export default function ShareModal({ url, onClose }: ShareModalProps) {
         </div>
 
         <div className="flex justify-center mb-4 p-3 bg-white rounded-xl border border-gray-200">
-          <QRCode value={url} size={200} />
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={qrSrc}
+            alt="QR code for share link"
+            width={200}
+            height={200}
+            className="rounded"
+          />
         </div>
 
         <div className="text-right">
