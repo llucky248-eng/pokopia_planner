@@ -14,6 +14,7 @@ interface PlannerToolbarProps {
   toolMode: "place" | "erase" | "measure";
   onToggleErase: () => void;
   onToggleMeasure: () => void;
+  isSharing?: boolean;
 }
 
 export default function PlannerToolbar({
@@ -28,6 +29,7 @@ export default function PlannerToolbar({
   toolMode,
   onToggleErase,
   onToggleMeasure,
+  isSharing = false,
 }: PlannerToolbarProps) {
   const statusText =
     toolMode === "erase"
@@ -74,8 +76,8 @@ export default function PlannerToolbar({
         <Button variant="secondary" onClick={onImport}>
           Import Map
         </Button>
-        <Button variant="accent" onClick={onShare}>
-          Share
+        <Button variant="accent" onClick={onShare} disabled={isSharing}>
+          {isSharing ? "Sharing…" : "Share"}
         </Button>
       </div>
     </div>

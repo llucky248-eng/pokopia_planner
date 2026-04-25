@@ -10,7 +10,6 @@ interface ShareModalProps {
 
 export default function ShareModal({ url, onClose }: ShareModalProps) {
   const [copied, setCopied] = useState(false);
-  const [qrTooBig, setQrTooBig] = useState(false);
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
   const handleCopy = async () => {
@@ -34,12 +33,11 @@ export default function ShareModal({ url, onClose }: ShareModalProps) {
     import("qrcode").then((mod) => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const QRCode = (mod as any).default ?? mod;
-      QRCode.toCanvas(
-        canvas,
-        url,
-        { width: 200, margin: 2, errorCorrectionLevel: "L" },
-        (err: unknown) => { if (err) setQrTooBig(true); }
-      );
+      QRCode.toCanvas(canvas, url, {
+        width: 200,
+        margin: 2,
+        errorCorrectionLevel: "M",
+      });
     });
   }, [url]);
 
@@ -69,14 +67,8 @@ export default function ShareModal({ url, onClose }: ShareModalProps) {
           </Button>
         </div>
 
-        <div className="flex justify-center mb-4 p-3 bg-white rounded-xl border border-gray-200 min-h-[56px] items-center">
-          {qrTooBig ? (
-            <p className="text-xs text-text-secondary text-center px-2">
-              Plan too large for a QR code — use the link above.
-            </p>
-          ) : (
-            <canvas ref={canvasRef} width={200} height={200} className="rounded" />
-          )}
+        <div className="flex justify-center mb-4 p-3 bg-white rounded-xl border border-gray-200">
+          <canvas ref={canvasRef} width={200} height={200} className="rounded" />
         </div>
 
         <div className="text-right">
