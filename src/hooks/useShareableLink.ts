@@ -36,13 +36,17 @@ export function useShareableLink() {
       return plannerUrl(SHARE_PARAM, compressGrid(grid));
     }
     const data = compressGrid(grid);
+    console.log("[share] saving", grid.placements.length, "placements,", data.length, "compressed chars");
     let lastError: unknown = null;
     for (let attempt = 0; attempt < MAX_SLUG_RETRIES; attempt++) {
       const id = randomSlug();
       const { error } = await supabase
         .from(SHARES_TABLE)
         .insert({ id, data });
-      if (!error) return plannerUrl(SHARE_SLUG_PARAM, id);
+      if (!error) {
+        console.log("[share] saved as slug", id);
+        return plannerUrl(SHARE_SLUG_PARAM, id);
+      }
       // 23505 = Postgres unique_violation (slug collision); retry.
       if ((error as { code?: string }).code !== "23505") {
         lastError = error;
@@ -70,8 +74,15 @@ export function useShareableLink() {
       .select("data")
       .eq("id", slug)
       .maybeSingle();
-    if (error || !data) return null;
-    return decompressGrid(data.data as string);
+    if (error || !data) {
+      console.log("[share] load error or empty for slug", slug, error);
+      return null;
+    }
+    const compressed = data.data as string;
+    console.log("[share] loaded slug", slug, "->", compressed.length, "compressed chars");
+    const grid = decompressGrid(compressed);
+    console.log("[share] decompressed to", grid?.placements.length ?? 0, "placements");
+    return grid;
   }, []);
 
   return { saveShare, loadFromUrl, loadFromSlug };
