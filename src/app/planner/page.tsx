@@ -31,8 +31,10 @@ function PlannerContent() {
   const { grid, placeItem, removeItem, clearAll, undo, loadGrid,
           beginPaintStroke, paintCellInStroke, endPaintStroke,
           beginEraseStroke, eraseCellInStroke, endEraseStroke } = useGridState();
-  const { generateLink, loadFromUrl } = useShareableLink();
+  const { saveShare, loadFromUrl, loadFromSlug } = useShareableLink();
   const [shareUrl, setShareUrl] = useState<string | null>(null);
+  const [isSharing, setIsSharing] = useState(false);
+  const [shareError, setShareError] = useState<string | null>(null);
   const [isImportOpen, setIsImportOpen] = useState(false);
   const [loaded, setLoaded] = useState(false);
   const [selectedItemId, setSelectedItemId] = useState<string | null>(null);
@@ -42,10 +44,20 @@ function PlannerContent() {
 
   useEffect(() => {
     if (loaded) return;
-    const sharedGrid = loadFromUrl(searchParams);
-    if (sharedGrid) loadGrid(sharedGrid);
-    setLoaded(true);
-  }, [searchParams, loadFromUrl, loadGrid, loaded]);
+    let cancelled = false;
+    const slug = searchParams.get("s");
+    if (slug) {
+      setLoaded(true);
+      loadFromSlug(slug).then((g) => {
+        if (!cancelled && g) loadGrid(g);
+      });
+    } else {
+      const sharedGrid = loadFromUrl(searchParams);
+      if (sharedGrid) loadGrid(sharedGrid);
+      setLoaded(true);
+    }
+    return () => { cancelled = true; };
+  }, [searchParams, loadFromUrl, loadFromSlug, loadGrid, loaded]);
 
   const handleSelectItem = (itemId: string) => {
     setSelectedItemId((prev) => (prev === itemId ? null : itemId));
@@ -65,9 +77,18 @@ function PlannerContent() {
     setMeasureDimensions(null);
   };
 
-  const handleShare = () => {
-    const url = generateLink(grid);
-    setShareUrl(url);
+  const handleShare = async () => {
+    if (isSharing) return;
+    setIsSharing(true);
+    setShareError(null);
+    try {
+      const url = await saveShare(grid);
+      setShareUrl(url);
+    } catch {
+      setShareError("Couldn't create a share link. Please try again.");
+    } finally {
+      setIsSharing(false);
+    }
   };
 
   const handleHoverItem = useCallback((name: string | null) => {
@@ -127,7 +148,13 @@ function PlannerContent() {
             toolMode={toolMode}
             onToggleErase={handleToggleErase}
             onToggleMeasure={handleToggleMeasure}
+            isSharing={isSharing}
           />
+          {shareError && (
+            <div className="bg-red-50 border border-red-200 text-red-700 text-sm rounded-xl px-4 py-2">
+              {shareError}
+            </div>
+          )}
           <CanvasGrid
             grid={grid}
             selectedItemId={toolMode === "place" ? selectedItemId : null}
