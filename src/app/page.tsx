@@ -20,14 +20,23 @@ export default function HomePage() {
         </p>
       </div>
 
-      {/* Primary CTA */}
-      <Link
-        href="/planner"
-        className="inline-flex items-center gap-3 bg-sky-deep hover:bg-sky-700 text-white font-bold text-lg px-8 py-4 rounded-2xl shadow-lg hover:shadow-xl transition-all duration-200 hover:-translate-y-0.5 mb-12"
-      >
-        <span className="text-2xl">🗺️</span>
-        Open Island Planner
-      </Link>
+      {/* Primary + secondary CTAs */}
+      <div className="flex flex-col sm:flex-row items-center justify-center gap-3 mb-12">
+        <Link
+          href="/planner"
+          className="inline-flex items-center gap-3 bg-sky-deep hover:bg-sky-700 text-white font-bold text-lg px-8 py-4 rounded-2xl shadow-lg hover:shadow-xl transition-all duration-200 hover:-translate-y-0.5"
+        >
+          <span className="text-2xl">🗺️</span>
+          Open Island Planner
+        </Link>
+        <Link
+          href="/planner?import=1"
+          className="inline-flex items-center gap-3 bg-surface hover:bg-cloud text-sky-deep font-bold text-lg px-8 py-4 rounded-2xl shadow-md hover:shadow-lg border border-sky-base/40 transition-all duration-200 hover:-translate-y-0.5"
+        >
+          <span className="text-2xl">📥</span>
+          Import a Map
+        </Link>
+      </div>
 
       {/* Feature chips */}
       <div className="flex flex-wrap justify-center gap-3">

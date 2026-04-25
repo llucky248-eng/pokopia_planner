@@ -30,11 +30,6 @@ function randomSlug(): string {
 }
 
 export function useShareableLink() {
-  const generateLink = useCallback((grid: GridState): string => {
-    const compressed = compressGrid(grid);
-    return plannerUrl(SHARE_PARAM, compressed);
-  }, []);
-
   const saveShare = useCallback(async (grid: GridState): Promise<string> => {
     if (!supabase) {
       // Supabase not configured — fall back to inline encoded link.
@@ -79,5 +74,5 @@ export function useShareableLink() {
     return decompressGrid(data.data as string);
   }, []);
 
-  return { generateLink, saveShare, loadFromUrl, loadFromSlug };
+  return { saveShare, loadFromUrl, loadFromSlug };
 }

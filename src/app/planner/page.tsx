@@ -11,6 +11,9 @@ import PlannerToolbar from "@/components/planner/PlannerToolbar";
 import ShareModal from "@/components/planner/ShareModal";
 import ImportImageModal from "@/components/planner/ImportImageModal";
 import { GRID_SIZE } from "@/lib/constants";
+import { SHARE_SLUG_PARAM } from "@/lib/supabase";
+
+const IMPORT_PARAM = "import";
 
 export default function PlannerPage() {
   return (
@@ -45,7 +48,8 @@ function PlannerContent() {
   useEffect(() => {
     if (loaded) return;
     let cancelled = false;
-    const slug = searchParams.get("s");
+    if (searchParams.get(IMPORT_PARAM)) setIsImportOpen(true);
+    const slug = searchParams.get(SHARE_SLUG_PARAM);
     if (slug) {
       setLoaded(true);
       loadFromSlug(slug).then((g) => {
