@@ -221,11 +221,6 @@ export default function ImportImageModal({ isOpen, onClose, onApply }: ImportIma
                   </option>
                 ))}
               </select>
-              {outputSize === GRID_SIZE && (
-                <span className="text-xs text-orange-500">
-                  Large outputs may exceed shareable URL length.
-                </span>
-              )}
             </label>
 
             <div className="flex flex-col gap-1">
