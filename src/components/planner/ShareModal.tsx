@@ -10,6 +10,7 @@ interface ShareModalProps {
 
 export default function ShareModal({ url, onClose }: ShareModalProps) {
   const [copied, setCopied] = useState(false);
+  const [qrTooBig, setQrTooBig] = useState(false);
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
   const handleCopy = async () => {
@@ -28,19 +29,18 @@ export default function ShareModal({ url, onClose }: ShareModalProps) {
   };
 
   useEffect(() => {
-    console.log("[ShareModal] url length:", url.length, "url:", url);
     const canvas = canvasRef.current;
-    console.log("[ShareModal] canvas ref:", canvas);
-    if (!canvas) { console.error("[ShareModal] canvas ref is null"); return; }
+    if (!canvas) return;
     import("qrcode").then((mod) => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const QRCode = (mod as any).default ?? mod;
-      console.log("[ShareModal] QRCode:", QRCode, "toCanvas:", typeof QRCode?.toCanvas);
-      QRCode.toCanvas(canvas, url, { width: 200, margin: 2 }, (err: unknown) => {
-        if (err) console.error("[ShareModal] toCanvas error:", err);
-        else console.log("[ShareModal] toCanvas success");
-      });
-    }).catch((err) => console.error("[ShareModal] import error:", err));
+      QRCode.toCanvas(
+        canvas,
+        url,
+        { width: 200, margin: 2, errorCorrectionLevel: "L" },
+        (err: unknown) => { if (err) setQrTooBig(true); }
+      );
+    });
   }, [url]);
 
   return (
@@ -69,8 +69,14 @@ export default function ShareModal({ url, onClose }: ShareModalProps) {
           </Button>
         </div>
 
-        <div className="flex justify-center mb-4 p-3 bg-white rounded-xl border border-gray-200">
-          <canvas ref={canvasRef} width={200} height={200} className="rounded" />
+        <div className="flex justify-center mb-4 p-3 bg-white rounded-xl border border-gray-200 min-h-[56px] items-center">
+          {qrTooBig ? (
+            <p className="text-xs text-text-secondary text-center px-2">
+              Plan too large for a QR code — use the link above.
+            </p>
+          ) : (
+            <canvas ref={canvasRef} width={200} height={200} className="rounded" />
+          )}
         </div>
 
         <div className="text-right">
