@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useState, useEffect, useCallback } from "react";
+import { Suspense, useState, useEffect, useCallback, useRef } from "react";
 import { useSearchParams } from "next/navigation";
 import { useGridState } from "@/hooks/useGridState";
 import { useShareableLink } from "@/hooks/useShareableLink";
@@ -39,29 +39,24 @@ function PlannerContent() {
   const [isSharing, setIsSharing] = useState(false);
   const [shareError, setShareError] = useState<string | null>(null);
   const [isImportOpen, setIsImportOpen] = useState(false);
-  const [loaded, setLoaded] = useState(false);
+  const loadedRef = useRef(false);
   const [selectedItemId, setSelectedItemId] = useState<string | null>(null);
   const [toolMode, setToolMode] = useState<"place" | "erase" | "measure">("place");
   const [hoveredItemName, setHoveredItemName] = useState<string | null>(null);
   const [measureDimensions, setMeasureDimensions] = useState<{ w: number; h: number } | null>(null);
 
   useEffect(() => {
-    if (loaded) return;
-    let cancelled = false;
+    if (loadedRef.current) return;
+    loadedRef.current = true;
     if (searchParams.get(IMPORT_PARAM)) setIsImportOpen(true);
     const slug = searchParams.get(SHARE_SLUG_PARAM);
     if (slug) {
-      setLoaded(true);
-      loadFromSlug(slug).then((g) => {
-        if (!cancelled && g) loadGrid(g);
-      });
+      loadFromSlug(slug).then((g) => { if (g) loadGrid(g); });
     } else {
       const sharedGrid = loadFromUrl(searchParams);
       if (sharedGrid) loadGrid(sharedGrid);
-      setLoaded(true);
     }
-    return () => { cancelled = true; };
-  }, [searchParams, loadFromUrl, loadFromSlug, loadGrid, loaded]);
+  }, [searchParams, loadFromUrl, loadFromSlug, loadGrid]);
 
   const handleSelectItem = (itemId: string) => {
     setSelectedItemId((prev) => (prev === itemId ? null : itemId));
