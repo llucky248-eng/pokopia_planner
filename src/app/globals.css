@@ -1,32 +1,41 @@
 @import "tailwindcss";
 
 @theme inline {
+  /* Design system */
+  --color-ink: #152033;
+  --color-ink-soft: #3a4a66;
+  --color-muted: #6b7a92;
+  --color-sky-primary: #3f86d9;
+  --color-sky-tint: #eaf4fd;
+  --color-coral: #ff7d5a;
+  --color-cream: #fff8ec;
+  --color-blossom: #ffb1c1;
+
+  /* Legacy compat — used by canvas renderer and other components */
   --color-sky-light: #e0f2fe;
   --color-sky-base: #7dd3fc;
   --color-sky-deep: #0284c7;
-
   --color-cloud: #f8fafc;
   --color-cloud-soft: #f1f5f9;
-
   --color-grass-light: #bbf7d0;
   --color-grass-base: #4ade80;
   --color-grass-deep: #16a34a;
-
   --color-sunset: #fb923c;
   --color-berry: #f472b6;
   --color-golden: #facc15;
-
   --color-surface: #ffffff;
-  --color-text-primary: #1e293b;
-  --color-text-secondary: #64748b;
+  --color-text-primary: #152033;
+  --color-text-secondary: #6b7a92;
 
-  --font-sans: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-sans: var(--font-geist, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif);
+  --font-mono: var(--font-geist-mono, "JetBrains Mono", "Fira Code", monospace);
+  --font-serif: var(--font-newsreader, "Newsreader", Georgia, serif);
 }
 
 body {
   font-family: var(--font-sans);
   color: var(--color-text-primary);
-  background: linear-gradient(180deg, var(--color-sky-light) 0%, var(--color-cloud) 100%);
+  background: white;
   min-height: 100vh;
 }
 

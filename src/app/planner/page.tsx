@@ -19,8 +19,8 @@ export default function PlannerPage() {
   return (
     <Suspense
       fallback={
-        <div className="max-w-7xl mx-auto px-4 py-6 text-center text-text-secondary">
-          Loading planner...
+        <div className="flex-1 flex items-center justify-center text-[#6b7a92] text-sm">
+          Loading planner…
         </div>
       }
     >
@@ -122,38 +122,32 @@ function PlannerContent() {
   const selectedItemName = selectedItem ? `${selectedItem.emoji} ${selectedItem.name}` : null;
 
   return (
-    <div className="max-w-7xl mx-auto px-4 py-6">
-      <div className="mb-4">
-        <h1 className="text-2xl font-bold text-sky-deep">Island Planner</h1>
-        <p className="text-sm text-text-secondary">
-          Plan your 368×368 cloud island. Scroll to zoom, drag to pan, right-click to remove items.
-        </p>
-      </div>
-      <div className="flex flex-col lg:flex-row gap-4">
-        <ItemPalette
-          selectedItemId={selectedItemId}
-          onSelectItem={handleSelectItem}
+    <div className="flex-1 flex flex-col lg:flex-row overflow-hidden bg-[#eef3f9] min-h-0">
+      <ItemPalette
+        selectedItemId={selectedItemId}
+        onSelectItem={handleSelectItem}
+      />
+      <div className="flex-1 flex flex-col min-w-0 min-h-0">
+        <PlannerToolbar
+          onUndo={undo}
+          onClear={clearAll}
+          onShare={handleShare}
+          onImport={() => setIsImportOpen(true)}
+          itemCount={grid.placements.length}
+          selectedItemName={selectedItemName}
+          hoveredItemName={hoveredItemName}
+          measureDimensions={measureDimensions}
+          toolMode={toolMode}
+          onToggleErase={handleToggleErase}
+          onToggleMeasure={handleToggleMeasure}
+          isSharing={isSharing}
         />
-        <div className="flex-1 flex flex-col gap-4 min-w-0">
-          <PlannerToolbar
-            onUndo={undo}
-            onClear={clearAll}
-            onShare={handleShare}
-            onImport={() => setIsImportOpen(true)}
-            itemCount={grid.placements.length}
-            selectedItemName={selectedItemName}
-            hoveredItemName={hoveredItemName}
-            measureDimensions={measureDimensions}
-            toolMode={toolMode}
-            onToggleErase={handleToggleErase}
-            onToggleMeasure={handleToggleMeasure}
-            isSharing={isSharing}
-          />
-          {shareError && (
-            <div className="bg-red-50 border border-red-200 text-red-700 text-sm rounded-xl px-4 py-2">
-              {shareError}
-            </div>
-          )}
+        {shareError && (
+          <div className="bg-red-50 border-b border-red-200 text-red-700 text-sm px-5 py-2 flex-shrink-0">
+            {shareError}
+          </div>
+        )}
+        <div className="flex-1 overflow-auto p-4 lg:p-5 min-h-0">
           <CanvasGrid
             grid={grid}
             selectedItemId={toolMode === "place" ? selectedItemId : null}

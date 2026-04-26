@@ -3,7 +3,6 @@
 import { useEffect } from "react";
 import { GridState } from "@/types";
 import { useCanvasRenderer } from "@/hooks/useCanvasRenderer";
-import Button from "@/components/ui/Button";
 
 interface CanvasGridProps {
   grid: GridState;
@@ -78,11 +77,11 @@ export default function CanvasGrid({
   }, [measureDimensions, onMeasure]);
 
   return (
-    <div className="bg-surface/80 backdrop-blur rounded-2xl shadow-lg p-3 relative">
-      {/* Canvas container (square, responsive) */}
+    <div className="relative">
+      {/* Canvas container — square, responsive */}
       <div
-        className="relative w-full rounded-xl overflow-hidden bg-sky-100"
-        style={{ aspectRatio: "1 / 1" }}
+        className="relative w-full overflow-hidden bg-[#cfe6fb]"
+        style={{ aspectRatio: "1 / 1", borderRadius: 12, border: "1px solid rgba(20,40,80,0.10)" }}
       >
         <canvas
           ref={canvasRef}
@@ -103,20 +102,39 @@ export default function CanvasGrid({
         />
 
         {/* Zoom controls */}
-        <div className="absolute top-3 right-3 z-10 flex flex-col gap-1">
-          <Button variant="secondary" onClick={zoomIn} aria-label="Zoom in">
-            +
-          </Button>
-          <Button variant="secondary" onClick={resetView} aria-label="Fit view">
-            Fit
-          </Button>
-          <Button variant="secondary" onClick={zoomOut} aria-label="Zoom out">
-            −
-          </Button>
+        <div
+          className="absolute top-3.5 right-3.5 z-10 flex flex-col bg-white"
+          style={{
+            padding: 4, borderRadius: 10,
+            border: "1px solid rgba(20,40,80,0.10)",
+            boxShadow: "0 4px 12px rgba(20,40,80,0.10)",
+          }}
+        >
+          <ZoomBtn onClick={zoomIn} aria-label="Zoom in" label="＋" />
+          <ZoomBtn onClick={resetView} aria-label="Fit view" label="FIT" mono />
+          <ZoomBtn onClick={zoomOut} aria-label="Zoom out" label="−" />
         </div>
 
         {/* Minimap */}
-        <div className="absolute bottom-3 right-3 z-10 border-2 border-sky-700 rounded-lg overflow-hidden shadow-lg bg-white">
+        <div
+          className="absolute bottom-3.5 right-3.5 z-10 bg-white overflow-hidden"
+          style={{
+            borderRadius: 10,
+            border: "1px solid rgba(20,40,80,0.10)",
+            boxShadow: "0 4px 12px rgba(20,40,80,0.10)",
+          }}
+        >
+          <div
+            className="flex justify-between items-center px-2.5 py-1"
+            style={{ borderBottom: "1px solid rgba(20,40,80,0.06)" }}
+          >
+            <span
+              className="text-[9.5px] font-semibold tracking-[0.1em] text-[#6b7a92]"
+              style={{ fontFamily: "var(--font-geist-mono, monospace)" }}
+            >
+              MINIMAP
+            </span>
+          </div>
           <canvas
             ref={minimapRef}
             onMouseDown={handleMinimapMouseDown}
@@ -129,9 +147,16 @@ export default function CanvasGrid({
 
         {/* Instructions overlay (only shown when empty) */}
         {grid.placements.length === 0 && (
-          <div className="absolute top-3 left-3 z-10 bg-white/90 rounded-lg px-3 py-2 text-xs text-text-secondary shadow max-w-xs">
-            <p className="font-semibold text-text-primary mb-1">How to use</p>
-            <ul className="list-disc list-inside space-y-0.5">
+          <div
+            className="absolute top-3.5 left-3.5 z-10 bg-white/95 px-3 py-2.5 text-xs text-[#6b7a92] max-w-xs"
+            style={{
+              borderRadius: 10,
+              border: "1px solid rgba(20,40,80,0.10)",
+              boxShadow: "0 4px 12px rgba(20,40,80,0.10)",
+            }}
+          >
+            <p className="font-semibold text-[#152033] mb-1.5 text-[12px]">How to use</p>
+            <ul className="space-y-1 text-[11px]">
               <li>Select an item from the palette</li>
               <li>Click or drag to paint items</li>
               <li>Drag anywhere to pan the map</li>
@@ -142,5 +167,26 @@ export default function CanvasGrid({
         )}
       </div>
     </div>
+  );
+}
+
+function ZoomBtn({ onClick, label, mono, ...rest }: {
+  onClick: () => void;
+  label: string;
+  mono?: boolean;
+  "aria-label"?: string;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      aria-label={rest["aria-label"]}
+      className="w-8 flex items-center justify-center hover:bg-[#f0f4fa] rounded-md text-[#3a4a66] transition-colors cursor-pointer"
+      style={mono
+        ? { height: 24, fontSize: 10, fontWeight: 600, fontFamily: "var(--font-geist-mono, monospace)", letterSpacing: "0.05em" }
+        : { height: 32, fontSize: 16 }
+      }
+    >
+      {label}
+    </button>
   );
 }
