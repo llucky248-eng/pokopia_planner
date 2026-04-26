@@ -222,8 +222,6 @@ export function useCanvasRenderer(
     ctx.strokeRect(bx, by, bw, bw);
 
     // Draw placed items — iterate placements, not cells, to support multi-cell footprints.
-    ctx.textBaseline = "middle";
-    ctx.textAlign = "center";
     const drawn = new Set<string>();
     for (const placement of placementsRef.current) {
       if (drawn.has(placement.instanceId)) continue;
@@ -245,12 +243,6 @@ export function useCanvasRenderer(
       ctx.strokeStyle = "rgba(0,0,0,0.15)";
       ctx.lineWidth = 1;
       ctx.strokeRect(screenX, screenY, footW, footH);
-      if (cellPx >= 6) {
-        const fontSize = Math.floor(Math.min(footW, footH) * 0.55);
-        ctx.font = `${fontSize}px serif`;
-        ctx.fillStyle = "#1f2937";
-        ctx.fillText(catItem.emoji, screenX + footW / 2, screenY + footH / 2);
-      }
     }
 
     // Hover highlight — show full footprint of the item being placed/erased.
