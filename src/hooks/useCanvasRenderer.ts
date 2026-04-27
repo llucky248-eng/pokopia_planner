@@ -63,6 +63,7 @@ export function useCanvasRenderer(
 
   const [cursorStyle, setCursorStyle] = useState<string>("crosshair");
   const [hoveredItemName, setHoveredItemName] = useState<string | null>(null);
+  const [hoveredCell, setHoveredCell] = useState<{ row: number; col: number } | null>(null);
 
   // Measurement tool state
   // measureResultRef holds the committed rectangle (r1,c1)-(r2,c2) in grid cells.
@@ -745,6 +746,7 @@ export function useCanvasRenderer(
     const prev = hoveredCellRef.current;
     if ((prev?.row !== cell?.row) || (prev?.col !== cell?.col)) {
       hoveredCellRef.current = cell;
+      setHoveredCell(cell);
       markDirty();
       // Expose the name of whatever placed item is under the cursor.
       if (cell) {
@@ -766,6 +768,7 @@ export function useCanvasRenderer(
     // Just clear the hover highlight and item name.
     if (!dragStartRef.current) {
       hoveredCellRef.current = null;
+      setHoveredCell(null);
       setHoveredItemName(null);
       markDirty();
     }
@@ -847,6 +850,7 @@ export function useCanvasRenderer(
     minimapRef,
     cursorStyle,
     hoveredItemName,
+    hoveredCell,
     measureDimensions,
     zoomIn,
     zoomOut,

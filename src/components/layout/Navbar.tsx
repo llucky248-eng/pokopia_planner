@@ -36,6 +36,9 @@ const LINKS = [
 export default function Navbar() {
   const pathname = usePathname();
   const isHome = pathname === "/";
+  const isPlanner = pathname.startsWith("/planner");
+
+  if (isPlanner) return null;
 
   return (
     <header

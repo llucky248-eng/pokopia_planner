@@ -76,13 +76,20 @@ export default function ItemPalette({ selectedItemId, onSelectItem }: ItemPalett
             placeholder="Search items…"
             className="flex-1 bg-transparent border-none outline-none text-[13px] text-[#152033] placeholder:text-[#6b7a92]"
           />
-          {search && (
+          {search ? (
             <button
               onClick={() => setSearch("")}
-              className="text-[#6b7a92] hover:text-[#152033] text-xs leading-none"
+              className="text-[#6b7a92] hover:text-[#152033] text-xs leading-none cursor-pointer"
             >
               ✕
             </button>
+          ) : (
+            <span
+              className="text-[9px] text-[#a0aec0] bg-[#e8eef6] px-1.5 py-0.5 rounded font-medium flex-shrink-0"
+              style={{ fontFamily: monoFont }}
+            >
+              ⌘K
+            </span>
           )}
         </div>
 

@@ -89,37 +89,21 @@ export default function HomePage() {
             </Link>
           </div>
 
-          <div className="flex items-center gap-3 mt-7">
-            <div className="flex">
-              {(["🦊", "🐰", "🐧"] as const).map((animal, i) => (
-                <span
-                  key={i}
-                  className="w-8 h-8 rounded-full border-2 border-[#152033] inline-flex items-center justify-center text-base"
-                  style={{
-                    marginLeft: i === 0 ? 0 : -8,
-                    background: ["#ffd27a", "#ffb1c1", "#a8d8e8"][i],
-                  }}
-                >
-                  {animal}
-                </span>
-              ))}
-            </div>
-            <span className="text-[13px] text-[#3a4a66]">
-              <strong>2,400+ islanders</strong> are planning this week
-            </span>
-          </div>
         </div>
 
-        {/* Right: preview card */}
+        {/* Right: floating island scene */}
         <div className="hidden lg:block relative">
-          <div className="relative" style={{ transform: "rotate(1.5deg)" }}>
-            {/* Version sticker */}
+          <div className="relative">
+            <FloatingIsland />
+
+            {/* Floating sticker: version */}
             <div
-              className="absolute -top-3.5 -right-2.5 z-10 text-[12px] font-bold px-3 py-1 rounded-full text-[#152033]"
+              className="absolute text-[11px] font-bold px-2.5 py-1 rounded-full text-[#152033]"
               style={{
                 fontFamily: "var(--font-geist-mono, monospace)",
                 background: "#ffd27a",
                 border: "2px solid #152033",
+                top: "8%", right: "6%",
                 transform: "rotate(8deg)",
                 boxShadow: "0 2px 0 rgba(20,32,51,0.2)",
               }}
@@ -127,95 +111,41 @@ export default function HomePage() {
               v{pkg.version} ✨
             </div>
 
-            {/* Card */}
+            {/* Floating sticker: item name */}
             <div
-              className="bg-white rounded-[18px] overflow-hidden"
+              className="absolute text-white text-[11px] font-semibold flex gap-1.5 items-center px-2.5 py-1 rounded-lg"
               style={{
-                border: "2.5px solid #152033",
-                boxShadow: "0 10px 0 rgba(20,32,51,0.12), 0 20px 40px -10px rgba(20,40,80,0.18)",
+                fontFamily: "var(--font-geist-mono, monospace)",
+                left: "14%", bottom: "28%",
+                background: "#152033",
+                border: "2px solid #152033",
+                boxShadow: "0 2px 6px rgba(20,32,51,0.25)",
               }}
             >
-              {/* Card header */}
-              <div
-                className="flex items-center gap-2 px-3.5 py-2.5"
-                style={{ borderBottom: "2px solid #152033", background: "#fdf6e8" }}
-              >
-                {["#ff8a8a", "#ffcb47", "#7dd58c"].map((bg) => (
-                  <span
-                    key={bg}
-                    className="w-[11px] h-[11px] rounded-full inline-block"
-                    style={{ background: bg, border: "1.5px solid #152033" }}
-                  />
-                ))}
-                <span
-                  className="flex-1 text-center text-[12px] text-[#152033] font-semibold"
-                  style={{ fontFamily: "var(--font-geist-mono, monospace)" }}
-                >
-                  cliffside-orchard.pkp
-                </span>
-                <span
-                  className="text-[10px] font-semibold px-2 py-0.5 rounded-full text-[#152033] bg-white"
-                  style={{ fontFamily: "var(--font-geist-mono, monospace)", border: "1.5px solid #152033" }}
-                >
-                  368×368
-                </span>
-              </div>
+              <span>Wooden steps</span>
+              <span className="opacity-60">1×1</span>
+            </div>
 
-              {/* Canvas preview */}
-              <div className="relative bg-[#cfe6fb]" style={{ aspectRatio: "8/5" }}>
-                <MiniIslandSVG />
-
-                {/* Tool palette */}
-                <div
-                  className="absolute left-3 top-3 flex flex-col gap-1 bg-white p-1.5 rounded-xl"
-                  style={{ border: "2px solid #152033", boxShadow: "0 3px 0 rgba(20,32,51,0.18)" }}
-                >
-                  {(["🖌️", "🧽", "📏", "✋"] as const).map((em, i) => (
-                    <div
-                      key={i}
-                      className="w-[30px] h-[30px] rounded-lg flex items-center justify-center text-sm"
-                      style={i === 0 ? { background: "#fff3e0", border: "1.5px solid #152033" } : {}}
-                    >
-                      {em}
-                    </div>
-                  ))}
-                </div>
-
-                {/* Coord chip */}
-                <div
-                  className="absolute right-3 top-3 flex gap-2 bg-white px-2.5 py-1 rounded-full text-[10px] font-semibold text-[#152033]"
-                  style={{
-                    fontFamily: "var(--font-geist-mono, monospace)",
-                    border: "2px solid #152033",
-                    boxShadow: "0 2px 0 rgba(20,32,51,0.15)",
-                  }}
-                >
-                  <span>x:184</span>
-                  <span>y:212</span>
-                  <span className="text-[#3f86d9]">240%</span>
-                </div>
-
-                {/* Tooltip */}
-                <div
-                  className="absolute text-white text-[11px] font-semibold flex gap-1.5 items-center px-2.5 py-1 rounded-lg"
-                  style={{
-                    fontFamily: "var(--font-geist-mono, monospace)",
-                    left: "52%", top: "52%",
-                    background: "#152033",
-                    border: "2px solid #152033",
-                  }}
-                >
-                  <span>Wooden steps</span>
-                  <span className="opacity-60">1×1</span>
-                </div>
-              </div>
+            {/* Floating sticker: coords */}
+            <div
+              className="absolute flex gap-2 bg-white px-2.5 py-1 rounded-full text-[10px] font-semibold text-[#152033]"
+              style={{
+                fontFamily: "var(--font-geist-mono, monospace)",
+                right: "12%", bottom: "22%",
+                border: "2px solid #152033",
+                boxShadow: "0 2px 0 rgba(20,32,51,0.15)",
+              }}
+            >
+              <span>x:184</span>
+              <span>y:212</span>
+              <span className="text-[#3f86d9]">240%</span>
             </div>
 
             {/* Heart doodle */}
             <svg
               width="26" height="24" viewBox="0 0 24 22" aria-hidden
               className="absolute"
-              style={{ left: -22, top: "40%", transform: "rotate(-15deg)" }}
+              style={{ left: "8%", top: "42%", transform: "rotate(-15deg)" }}
             >
               <path
                 d="M12 21 C12 21 2 14 2 7 A5 5 0 0112 7 A5 5 0 0122 7 C22 14 12 21 12 21 Z"
@@ -287,42 +217,169 @@ function StarShape({ left, top, small }: { left: string; top: string; small: boo
   );
 }
 
-function MiniIslandSVG() {
+function FloatingIsland() {
   return (
-    <svg viewBox="0 0 480 300" style={{ width: "100%", height: "100%", display: "block" }}>
+    <svg viewBox="0 0 560 520" style={{ width: "100%", height: "auto", display: "block" }} aria-hidden>
       <defs>
-        <pattern id="mi-grid" width="10" height="10" patternUnits="userSpaceOnUse">
-          <path d="M 10 0 L 0 0 0 10" fill="none" stroke="rgba(63,134,217,0.10)" strokeWidth="0.6" />
+        <pattern id="fi-grid16" width="16" height="16" patternUnits="userSpaceOnUse">
+          <path d="M 16 0 L 0 0 0 16" fill="none" stroke="rgba(63,134,217,0.08)" strokeWidth="0.5" />
         </pattern>
-        <linearGradient id="mi-sea" x1="0" x2="0" y1="0" y2="1">
-          <stop offset="0" stopColor="#cfe6fb" /><stop offset="1" stopColor="#a6cdef" />
+        <pattern id="fi-grid8" width="8" height="8" patternUnits="userSpaceOnUse">
+          <path d="M 8 0 L 0 0 0 8" fill="none" stroke="rgba(63,134,217,0.05)" strokeWidth="0.4" />
+        </pattern>
+        <linearGradient id="fi-sky" x1="0" x2="0" y1="0" y2="1">
+          <stop offset="0" stopColor="#d8eafa" />
+          <stop offset="1" stopColor="#eaf4fd" />
         </linearGradient>
-        <linearGradient id="mi-grass" x1="0" x2="0" y1="0" y2="1">
-          <stop offset="0" stopColor="#a8dc8f" /><stop offset="1" stopColor="#7ac06a" />
+        <linearGradient id="fi-cliff" x1="0" x2="0" y1="0" y2="1">
+          <stop offset="0" stopColor="#c4a06a" />
+          <stop offset="1" stopColor="#9a7a48" />
         </linearGradient>
-        <linearGradient id="mi-sand" x1="0" x2="0" y1="0" y2="1">
-          <stop offset="0" stopColor="#fce6a8" /><stop offset="1" stopColor="#e9c878" />
+        <linearGradient id="fi-grass" x1="0" x2="0" y1="0" y2="1">
+          <stop offset="0" stopColor="#b0dc90" />
+          <stop offset="1" stopColor="#7ac060" />
         </linearGradient>
+        <linearGradient id="fi-sand" x1="0" x2="0" y1="0" y2="1">
+          <stop offset="0" stopColor="#f4d898" />
+          <stop offset="1" stopColor="#e0c070" />
+        </linearGradient>
+        <linearGradient id="fi-water" x1="0" x2="0" y1="0" y2="1">
+          <stop offset="0" stopColor="#a8d8f8" />
+          <stop offset="1" stopColor="#78b8e8" />
+        </linearGradient>
+        <filter id="fi-shadow" x="-20%" y="-20%" width="140%" height="140%">
+          <feDropShadow dx="0" dy="8" stdDeviation="12" floodColor="rgba(20,40,80,0.14)" />
+        </filter>
       </defs>
-      <rect width="480" height="300" fill="url(#mi-sea)" />
-      <rect width="480" height="300" fill="url(#mi-grid)" />
-      <path d="M70 80 Q160 40 280 60 Q380 60 420 130 Q450 220 360 250 Q240 280 160 260 Q60 240 50 170 Q40 110 70 80 Z" fill="url(#mi-sand)" stroke="#d4b06a" strokeWidth="1.2" />
-      <path d="M100 100 Q190 70 280 90 Q360 90 390 150 Q400 210 330 230 Q230 250 170 240 Q98 220 90 170 Q82 130 100 100 Z" fill="url(#mi-grass)" />
-      <path d="M200 90 Q220 150 190 200 Q170 240 220 248" stroke="#8fc6ee" strokeWidth="10" fill="none" strokeLinecap="round" />
-      <path d="M130 220 Q210 180 290 200 Q340 210 370 170" stroke="#d7a86e" strokeWidth="6" fill="none" strokeLinecap="round" strokeDasharray="2 4" />
-      <g>
-        <rect x="240" y="130" width="22" height="22" fill="#fff" stroke="#152033" strokeWidth="1.4" rx="2" />
-        <rect x="270" y="138" width="18" height="18" fill="#ffd27a" stroke="#152033" strokeWidth="1.4" rx="2" />
-        <rect x="296" y="120" width="26" height="20" fill="#ff8a6b" stroke="#152033" strokeWidth="1.4" rx="2" />
-        <rect x="258" y="180" width="20" height="20" fill="#fff" stroke="#152033" strokeWidth="1.4" rx="2" />
+
+      {/* Sky background */}
+      <rect width="560" height="520" fill="url(#fi-sky)" />
+
+      {/* Island group with shadow */}
+      <g filter="url(#fi-shadow)">
+        {/* Cliff / rock base */}
+        <path
+          d="M110 370 Q130 410 200 430 Q280 450 360 430 Q430 410 450 370 Q470 330 450 305 L110 305 Q90 330 110 370 Z"
+          fill="url(#fi-cliff)" stroke="#8a6030" strokeWidth="1.2"
+        />
+
+        {/* Sandy beach layer */}
+        <path
+          d="M125 308 Q200 290 280 285 Q360 290 435 308 Q440 280 420 262 L140 262 Q120 280 125 308 Z"
+          fill="url(#fi-sand)" stroke="#c8a050" strokeWidth="1"
+        />
+
+        {/* Main grass area */}
+        <path
+          d="M145 265 Q210 238 280 232 Q350 238 415 260 Q430 230 408 206 Q370 185 280 180 Q190 185 152 206 Q130 230 145 265 Z"
+          fill="url(#fi-grass)" stroke="#5a9040" strokeWidth="1"
+        />
+
+        {/* Cliff face detail */}
+        <path d="M130 320 Q200 310 280 307 Q360 310 430 320" stroke="#a07840" strokeWidth="1" fill="none" opacity="0.5" />
+        <path d="M120 345 Q200 335 280 332 Q360 335 440 345" stroke="#a07840" strokeWidth="1" fill="none" opacity="0.3" />
+
+        {/* Grid overlay on grass */}
+        <clipPath id="fi-grass-clip">
+          <path d="M145 265 Q210 238 280 232 Q350 238 415 260 Q430 230 408 206 Q370 185 280 180 Q190 185 152 206 Q130 230 145 265 Z" />
+        </clipPath>
+        <rect x="145" y="180" width="285" height="90" fill="url(#fi-grid16)" clipPath="url(#fi-grass-clip)" />
+        <rect x="145" y="180" width="285" height="90" fill="url(#fi-grid8)" clipPath="url(#fi-grass-clip)" />
+
+        {/* River */}
+        <path
+          d="M236 232 Q230 265 234 300 Q236 320 240 350"
+          stroke="url(#fi-water)" strokeWidth="14" fill="none" strokeLinecap="round" opacity="0.85"
+        />
+        <path
+          d="M236 232 Q230 265 234 300 Q236 320 240 350"
+          stroke="#a8d8f8" strokeWidth="6" fill="none" strokeLinecap="round" opacity="0.4"
+        />
+
+        {/* Path / road */}
+        <path
+          d="M168 275 Q210 262 258 258 Q300 257 340 265 Q378 276 408 295"
+          stroke="#d4a860" strokeWidth="7" fill="none" strokeLinecap="round" strokeDasharray="5 7"
+        />
+
+        {/* Buildings */}
+        {/* House 1 - white walls, blue roof */}
+        <rect x="256" y="230" width="24" height="22" fill="white" stroke="#152033" strokeWidth="1.2" rx="1.5" />
+        <polygon points="254,230 280,230 267,218" fill="#6aabdf" stroke="#152033" strokeWidth="1.2" strokeLinejoin="round" />
+        <rect x="263" y="238" width="7" height="8" fill="#c8e4f8" stroke="#152033" strokeWidth="0.8" rx="0.5" />
+
+        {/* House 2 - cream walls, coral roof */}
+        <rect x="292" y="235" width="22" height="20" fill="#fff8ec" stroke="#152033" strokeWidth="1.2" rx="1.5" />
+        <polygon points="290,235 314,235 302,224" fill="#ff8a6b" stroke="#152033" strokeWidth="1.2" strokeLinejoin="round" />
+        <rect x="298" y="243" width="6" height="8" fill="#ffd6c8" stroke="#152033" strokeWidth="0.8" rx="0.5" />
+
+        {/* House 3 - white walls, golden roof, larger */}
+        <rect x="330" y="222" width="30" height="26" fill="white" stroke="#152033" strokeWidth="1.2" rx="1.5" />
+        <polygon points="328,222 360,222 344,208" fill="#ffd27a" stroke="#152033" strokeWidth="1.2" strokeLinejoin="round" />
+        <rect x="337" y="232" width="7" height="10" fill="#ffedb8" stroke="#152033" strokeWidth="0.8" rx="0.5" />
+        <rect x="349" y="232" width="7" height="10" fill="#c8e4f8" stroke="#152033" strokeWidth="0.8" rx="0.5" />
+
+        {/* House 4 - small, green roof */}
+        <rect x="174" y="248" width="18" height="18" fill="white" stroke="#152033" strokeWidth="1.2" rx="1.5" />
+        <polygon points="172,248 192,248 182,237" fill="#7ac060" stroke="#152033" strokeWidth="1.2" strokeLinejoin="round" />
+
+        {/* House 5 - pink roof */}
+        <rect x="278" y="265" width="20" height="18" fill="#fff8ec" stroke="#152033" strokeWidth="1.2" rx="1.5" />
+        <polygon points="276,265 298,265 287,254" fill="#ffb1c1" stroke="#152033" strokeWidth="1.2" strokeLinejoin="round" />
+
+        {/* Trees (pom-pom style) */}
+        {[
+          [152, 240], [168, 225], [192, 235],
+          [212, 220], [362, 220], [382, 232],
+          [350, 240], [398, 248], [155, 265],
+          [415, 235], [220, 250], [195, 260],
+          [388, 265], [170, 280], [360, 275],
+          [200, 270], [410, 258], [228, 260],
+        ].map(([cx, cy], i) => (
+          <g key={i}>
+            <circle cx={cx} cy={cy + 3} r="7" fill="rgba(0,40,20,0.12)" />
+            <circle cx={cx} cy={cy} r="7" fill="#5aac46" stroke="#3a7a2e" strokeWidth="1" />
+            <circle cx={cx} cy={cy} r="4" fill="#70c458" />
+          </g>
+        ))}
+
+        {/* Selection rectangle: PLAZA */}
+        <rect x="247" y="215" width="118" height="82" fill="rgba(255,125,90,0.08)" stroke="#ff7d5a" strokeWidth="1.8" strokeDasharray="4 4" rx="2" />
+        <rect x="247" y="207" width="78" height="13" fill="#ff7d5a" rx="2" />
+        <text x="252" y="217" fill="white" fontSize="8" fontWeight="700" fontFamily="monospace" letterSpacing="0.5">PLAZA · 8×6 tiles</text>
       </g>
-      {[[120, 150], [140, 130], [160, 165], [350, 170], [370, 200], [340, 220], [210, 130], [350, 130], [330, 150], [120, 200], [140, 220]].map(([cx, cy], i) => (
-        <g key={i}>
-          <circle cx={cx} cy={cy + 3} r="6" fill="rgba(0,40,20,0.18)" />
-          <circle cx={cx} cy={cy} r="6" fill="#4a9c3a" stroke="#152033" strokeWidth="1.2" />
-        </g>
-      ))}
-      <rect x="232" y="116" width="100" height="92" fill="rgba(255,125,90,0.10)" stroke="#ff7d5a" strokeWidth="1.6" strokeDasharray="3 3" rx="3" />
+
+      {/* Floating island shadow */}
+      <ellipse cx="280" cy="430" rx="200" ry="18" fill="rgba(20,40,80,0.07)" />
+
+      {/* Mascot cloud (top-left, peeking) */}
+      <g transform="translate(42, 58) scale(0.72)">
+        <defs>
+          <linearGradient id="fi-cloud-mascot" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0" stopColor="#b8d8f4" />
+            <stop offset="1" stopColor="#7cb8e8" />
+          </linearGradient>
+        </defs>
+        <path
+          d="M40 116 Q12 114 20 84 Q4 64 28 54 Q32 26 60 32 Q74 8 102 22 Q132 4 152 28 Q186 28 186 66 Q200 84 184 104 Q174 124 146 120 L52 120 Q34 124 40 116 Z"
+          fill="url(#fi-cloud-mascot)" stroke="#7898c0" strokeWidth="3" strokeLinejoin="round"
+        />
+        <circle cx="78" cy="72" r="5" fill="#152033" />
+        <circle cx="118" cy="72" r="5" fill="#152033" />
+        <circle cx="80" cy="70" r="1.6" fill="white" />
+        <circle cx="120" cy="70" r="1.6" fill="white" />
+        <path d="M86 90 Q98 98 110 90" stroke="#152033" strokeWidth="2.5" fill="none" strokeLinecap="round" />
+        <ellipse cx="60" cy="86" rx="5" ry="3" fill="#ffb1c1" opacity="0.75" />
+        <ellipse cx="138" cy="86" rx="5" ry="3" fill="#ffb1c1" opacity="0.75" />
+      </g>
+
+      {/* Small decorative cloud (top-right) */}
+      <g transform="translate(430, 32) scale(0.45)">
+        <path
+          d="M30 80 Q8 78 14 58 Q0 44 22 36 Q24 16 48 22 Q60 4 82 16 Q102 0 122 18 Q150 8 162 32 Q190 32 190 58 Q204 72 188 84 Q178 96 154 90 L42 90 Q22 94 30 80 Z"
+          fill="white" stroke="#bcd9f0" strokeWidth="3" strokeLinejoin="round"
+        />
+      </g>
     </svg>
   );
 }
