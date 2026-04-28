@@ -99,12 +99,15 @@ export default function CanvasGrid({
   const selectedItem = selectedItemId ? getItemById(selectedItemId) : null;
 
   return (
-    <div className="relative">
-      {/* Canvas container — square, responsive */}
-      <div
-        className="relative w-full overflow-hidden bg-[#cfe6fb]"
-        style={{ aspectRatio: "1 / 1", borderRadius: 12, border: "1px solid rgba(20,40,80,0.10)" }}
-      >
+    <div
+      className="relative overflow-hidden bg-[#cfe6fb]"
+      style={{
+        width: "min(100cqw, 100cqh)",
+        height: "min(100cqw, 100cqh)",
+        borderRadius: 12,
+        border: "1px solid rgba(20,40,80,0.10)",
+      }}
+    >
         <canvas
           ref={canvasRef}
           onMouseDown={handleMouseDown}
@@ -282,7 +285,6 @@ export default function CanvasGrid({
             </ul>
           </div>
         )}
-      </div>
     </div>
   );
 }
