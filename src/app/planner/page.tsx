@@ -128,18 +128,14 @@ function PlannerContent() {
   return (
     <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
       <div className="flex-1 flex flex-col lg:flex-row overflow-hidden bg-[#eef3f9] min-h-0">
-        <ItemPalette
-          selectedItemId={selectedItemId}
-          onSelectItem={handleSelectItem}
-        />
-        <div className="flex-1 flex flex-col min-w-0 min-h-0">
+        <div className="flex-1 flex flex-col min-w-0 min-h-0 lg:order-2">
           {shareError && (
             <div className="bg-red-50 border-b border-red-200 text-red-700 text-sm px-5 py-2 flex-shrink-0">
               {shareError}
             </div>
           )}
           <div
-            className="flex-1 min-w-0 min-h-[60vh] lg:min-h-0 p-4 lg:p-5 flex items-center justify-center"
+            className="flex-1 min-w-0 min-h-[55vh] lg:min-h-0 p-4 lg:p-5 flex items-center justify-center"
             style={{ containerType: "size" }}
           >
             <CanvasGrid
@@ -164,6 +160,10 @@ function PlannerContent() {
             />
           </div>
         </div>
+        <ItemPalette
+          selectedItemId={selectedItemId}
+          onSelectItem={handleSelectItem}
+        />
         <PlannerSidePanel
           toolMode={toolMode}
           selectedItemId={selectedItemId}

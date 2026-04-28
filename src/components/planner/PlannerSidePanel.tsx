@@ -45,7 +45,7 @@ export default function PlannerSidePanel({
 
   return (
     <aside
-      className="w-full lg:w-[240px] flex-shrink-0 flex flex-col bg-white"
+      className="w-full lg:w-[240px] flex-shrink-0 flex flex-col bg-white lg:order-3"
       style={{
         borderTop: "1px solid rgba(20,40,80,0.10)",
         borderLeft: "1px solid rgba(20,40,80,0.10)",
