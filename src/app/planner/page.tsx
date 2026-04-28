@@ -8,7 +8,6 @@ import { getItemById } from "@/data/items";
 import CanvasGrid from "@/components/planner/CanvasGrid";
 import ItemPalette from "@/components/planner/ItemPalette";
 import PlannerToolbar from "@/components/planner/PlannerToolbar";
-import PlannerAppBar from "@/components/planner/PlannerAppBar";
 import ShareModal from "@/components/planner/ShareModal";
 import ImportImageModal from "@/components/planner/ImportImageModal";
 import { GRID_SIZE } from "@/lib/constants";
@@ -142,19 +141,18 @@ function PlannerContent() {
 
   return (
     <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
-      <PlannerAppBar
-        onShare={handleShare}
-        onImport={() => setIsImportOpen(true)}
-        isSharing={isSharing}
-      />
-
       <div className="flex-1 flex flex-col lg:flex-row overflow-hidden bg-[#eef3f9] min-h-0">
         <ItemPalette
           selectedItemId={selectedItemId}
           onSelectItem={handleSelectItem}
         />
         <div className="flex-1 flex flex-col min-w-0 min-h-0">
-          <PlannerToolbar itemCount={grid.placements.length} />
+          <PlannerToolbar
+            itemCount={grid.placements.length}
+            onShare={handleShare}
+            onImport={() => setIsImportOpen(true)}
+            isSharing={isSharing}
+          />
           {shareError && (
             <div className="bg-red-50 border-b border-red-200 text-red-700 text-sm px-5 py-2 flex-shrink-0">
               {shareError}
