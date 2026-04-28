@@ -41,7 +41,7 @@ export default function ItemPalette({ selectedItemId, onSelectItem }: ItemPalett
 
   return (
     <div
-      className="flex flex-col bg-white w-full lg:w-[280px] flex-shrink-0 overflow-hidden max-h-[45vh] lg:max-h-none lg:order-1"
+      className="flex flex-col bg-white w-full lg:w-[280px] flex-shrink-0 overflow-hidden max-h-[45vh] lg:max-h-[60vh] lg:self-start lg:order-1"
       style={{ borderRight: "1px solid rgba(20,40,80,0.10)" }}
     >
       {/* Categories section */}
