@@ -41,11 +41,14 @@ export default function ItemPalette({ selectedItemId, onSelectItem }: ItemPalett
 
   return (
     <div
-      className="flex flex-col bg-white w-full lg:w-[280px] flex-shrink-0 overflow-hidden max-h-[45vh] lg:max-h-[60vh] lg:self-start lg:order-1"
+      className="flex flex-col bg-white w-full lg:w-[280px] flex-shrink-0 overflow-hidden lg:max-h-[60vh] lg:self-start lg:order-1"
       style={{ borderRight: "1px solid rgba(20,40,80,0.10)" }}
     >
       {/* Categories section */}
-      <div className="p-3.5" style={{ borderBottom: "1px solid rgba(20,40,80,0.06)" }}>
+      <div
+        className="p-3.5 min-h-0 lg:overflow-y-auto"
+        style={{ borderBottom: "1px solid rgba(20,40,80,0.06)" }}
+      >
         <div className="flex items-center justify-between mb-2.5 px-1">
           <span
             className="text-[10.5px] font-semibold tracking-[0.1em] uppercase text-[#6b7a92]"
@@ -123,7 +126,7 @@ export default function ItemPalette({ selectedItemId, onSelectItem }: ItemPalett
       </div>
 
       {/* Items list */}
-      <div className="flex-1 overflow-y-auto p-3.5 min-h-0">
+      <div className="flex-1 overflow-y-auto p-3.5 min-h-0 lg:min-h-[200px]">
         <div className="flex items-center justify-between mb-2.5 px-1">
           <span
             className="text-[10.5px] font-semibold tracking-[0.1em] uppercase text-[#6b7a92]"
