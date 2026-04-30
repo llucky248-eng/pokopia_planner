@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import pkg from "../../../package.json";
 
-function CloudMark({ size = 28 }: { size?: number }) {
+export function CloudMark({ size = 28 }: { size?: number }) {
   return (
     <svg width={size} height={Math.round(size * 0.74)} viewBox="0 0 200 148" aria-hidden>
       <defs>
@@ -28,7 +28,7 @@ function CloudMark({ size = 28 }: { size?: number }) {
   );
 }
 
-const LINKS = [
+export const NAV_LINKS = [
   { href: "/", label: "Home" },
   { href: "/planner", label: "Planner" },
 ];
@@ -36,10 +36,11 @@ const LINKS = [
 export default function Navbar() {
   const pathname = usePathname();
   const isHome = pathname === "/";
+  const isPlanner = pathname.startsWith("/planner");
 
   return (
     <header
-      className="relative z-20 bg-white px-8 sm:px-12 py-3.5 flex items-center justify-between gap-6"
+      className={`relative z-20 bg-white px-8 sm:px-12 py-3.5 flex items-center justify-between gap-6 ${isPlanner ? "lg:hidden" : ""}`}
       style={{ borderBottom: "2px solid rgba(20,32,51,0.08)" }}
     >
       {/* Brand */}
@@ -67,7 +68,7 @@ export default function Navbar() {
         className="flex gap-1 bg-white px-1.5 py-1.5 rounded-full"
         style={{ border: "2px solid #152033", boxShadow: "0 3px 0 rgba(20,32,51,0.12)" }}
       >
-        {LINKS.map(({ href, label }) => {
+        {NAV_LINKS.map(({ href, label }) => {
           const active = pathname === href || (href === "/planner" && pathname.startsWith("/planner"));
           return (
             <Link
