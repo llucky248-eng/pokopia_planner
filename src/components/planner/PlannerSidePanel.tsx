@@ -1,7 +1,10 @@
 "use client";
 
+import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { getItemById } from "@/data/items";
 import { tailwindToHex } from "@/lib/colors";
+import { CloudMark, NAV_LINKS } from "@/components/layout/Navbar";
 
 const MAX_CELLS = 135_424; // 368 × 368
 const monoFont = "var(--font-geist-mono, 'JetBrains Mono', monospace)";
@@ -42,6 +45,7 @@ export default function PlannerSidePanel({
         : "—";
 
   const pct = Math.min(100, (itemCount / MAX_CELLS) * 100);
+  const pathname = usePathname();
 
   return (
     <aside
@@ -51,6 +55,39 @@ export default function PlannerSidePanel({
         borderLeft: "1px solid rgba(20,40,80,0.10)",
       }}
     >
+      {/* Brand + nav (desktop only — replaces top navbar on /planner) */}
+      <div
+        className="hidden lg:flex flex-col gap-3 px-4 py-4"
+        style={{ borderBottom: "1px solid rgba(20,40,80,0.08)" }}
+      >
+        <Link href="/" className="flex items-center gap-2">
+          <CloudMark size={22} />
+          <span className="font-bold text-[14px] tracking-tight text-[#152033]">Pokopia</span>
+          <span className="font-medium text-[14px] text-[#6b7a92]">Planner</span>
+        </Link>
+        <nav
+          className="flex gap-1 bg-white px-1 py-1 rounded-full self-start"
+          style={{ border: "2px solid #152033", boxShadow: "0 2px 0 rgba(20,32,51,0.12)" }}
+        >
+          {NAV_LINKS.map(({ href, label }) => {
+            const active = pathname === href || (href === "/planner" && pathname.startsWith("/planner"));
+            return (
+              <Link
+                key={href}
+                href={href}
+                className={`px-3 py-1 rounded-full text-[12px] transition-colors ${
+                  active
+                    ? "bg-amber-50 text-[#152033] font-bold"
+                    : "text-[#3a4a66] hover:text-[#152033] font-semibold"
+                }`}
+              >
+                {label}
+              </Link>
+            );
+          })}
+        </nav>
+      </div>
+
       {/* Actions */}
       <div
         className="px-4 py-3 flex flex-col gap-2"
