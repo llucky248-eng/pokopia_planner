@@ -102,8 +102,8 @@ export default function CanvasGrid({
     <div
       className="relative overflow-hidden bg-[#cfe6fb]"
       style={{
-        width: "min(100cqw, 100cqh)",
-        height: "min(100cqw, 100cqh)",
+        width: "min(90cqw, 90cqh)",
+        height: "min(90cqw, 90cqh)",
         borderRadius: 12,
         border: "1px solid rgba(20,40,80,0.10)",
       }}
