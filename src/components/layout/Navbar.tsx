@@ -31,6 +31,8 @@ export function CloudMark({ size = 28 }: { size?: number }) {
 export const NAV_LINKS = [
   { href: "/", label: "Home" },
   { href: "/planner", label: "Planner" },
+  { href: "/guide", label: "Guide" },
+  { href: "/checklist", label: "Tracker" },
 ];
 
 export default function Navbar() {
